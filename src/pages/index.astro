@@ -1,0 +1,155 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import { getArticleStats } from '@/lib/supabase';
+
+// 获取统计数据
+const { statusStats, categoryStats, recentCount } = await getArticleStats();
+
+// 处理状态统计
+const statusCounts = statusStats.reduce((acc: Record<string, number>, item: any) => {
+  acc[item.overall_status] = (acc[item.overall_status] || 0) + 1;
+  return acc;
+}, {});
+
+// 处理分类统计
+const categoryCounts = categoryStats.reduce((acc: Record<string, number>, item: any) => {
+  acc[item.primary_category] = (acc[item.primary_category] || 0) + 1;
+  return acc;
+}, {});
+
+const totalArticles = statusStats.length;
+const analyzedArticles = statusStats.filter((item: any) => 
+  ['low_value', 'medium_value', 'high_value'].includes(item.overall_status)
+).length;
+---
+
+<Layout title="制造业情报系统 - 首页">
+  <!-- 系统状态 -->
+  <section class="uk-section">
+    <div class="uk-container">
+      <div class="uk-flex uk-flex-between uk-flex-middle">
+        <div>
+          <h1 class="uk-heading-medium uk-margin-remove">工作台</h1>
+        </div>
+        <div>
+          <div class="uk-button-group">
+            <a href="/pool" class="uk-button uk-button-primary">文章池</a>
+            <a href="/editor" class="uk-button uk-button-default">编辑台</a>
+            <a href="/sources" class="uk-button uk-button-default">RSS源</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 数据统计 -->
+  <section class="uk-section">
+    <div class="uk-container">
+      
+      <div class="uk-grid-match uk-child-width-1-4@m uk-child-width-1-2@s" uk-grid>
+        <div>
+          <div class="uk-card uk-card-default uk-card-body uk-text-center">
+            <h3 class="uk-card-title uk-text-large">{totalArticles}</h3>
+            <p class="uk-text-small uk-text-muted">总文章</p>
+          </div>
+        </div>
+        
+        <div>
+          <div class="uk-card uk-card-default uk-card-body uk-text-center">
+            <h3 class="uk-card-title uk-text-large">{analyzedArticles}</h3>
+            <p class="uk-text-small uk-text-muted">已分析</p>
+          </div>
+        </div>
+        
+        <div>
+          <div class="uk-card uk-card-default uk-card-body uk-text-center">
+            <h3 class="uk-card-title uk-text-large">{recentCount}</h3>
+            <p class="uk-text-small uk-text-muted">今日</p>
+          </div>
+        </div>
+        
+        <div>
+          <div class="uk-card uk-card-default uk-card-body uk-text-center">
+            <h3 class="uk-card-title uk-text-large">
+              {totalArticles > 0 ? Math.round((analyzedArticles / totalArticles) * 100) : 0}%
+            </h3>
+            <p class="uk-text-small uk-text-muted">覆盖率</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 文章状态分布 -->
+  <section class="uk-section uk-section-muted">
+    <div class="uk-container">
+      <div class="uk-grid-match" uk-grid>
+        <!-- 状态分布 -->
+        <div class="uk-width-1-2@m">
+          <div class="uk-card uk-card-default uk-card-body">
+            <h3 class="uk-card-title">
+              <span uk-icon="pie-chart" class="uk-margin-small-right"></span>
+              文章状态分布
+            </h3>
+            <div class="uk-margin-medium-top">
+              {Object.entries(statusCounts).map(([status, count]) => {
+                const percentage = totalArticles > 0 ? (count / totalArticles * 100).toFixed(1) : '0';
+                let statusText = '';
+                let statusClass = '';
+                
+                switch(status) {
+                  case 'high_value': statusText = '高价值'; statusClass = 'status-high'; break;
+                  case 'medium_value': statusText = '中价值'; statusClass = 'status-medium'; break;
+                  case 'low_value': statusText = '低价值'; statusClass = 'status-low'; break;
+                  case 'draft': statusText = '待分析'; statusClass = 'status-draft'; break;
+                  default: statusText = status; statusClass = 'status-draft';
+                }
+                
+                return (
+                  <div class="uk-flex uk-flex-between uk-margin-small">
+                    <span class={`category-tag ${statusClass}`}>{statusText}</span>
+                    <span class="uk-text-bold">{count} ({percentage}%)</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        <!-- 分类分布 -->
+        <div class="uk-width-1-2@m">
+          <div class="uk-card uk-card-default uk-card-body">
+            <h3 class="uk-card-title">
+              <span uk-icon="tag" class="uk-margin-small-right"></span>
+              分类分布
+            </h3>
+            <div class="uk-margin-medium-top">
+              {Object.entries(categoryCounts).slice(0, 5).map(([category, count]) => {
+                const percentage = analyzedArticles > 0 ? (count / analyzedArticles * 100).toFixed(1) : '0';
+                let categoryText = '';
+                let categoryClass = '';
+                
+                switch(category) {
+                  case 'Core Equipment': categoryText = '核心设备'; categoryClass = 'category-equipment'; break;
+                  case 'Supply Chain': categoryText = '供应链'; categoryClass = 'category-supply'; break;
+                  case 'Market Trends': categoryText = '市场趋势'; categoryClass = 'category-trends'; break;
+                  case 'Technological Innovation': categoryText = '技术创新'; categoryClass = 'category-innovation'; break;
+                  case 'Business Models': categoryText = '商业模式'; categoryClass = 'category-business'; break;
+                  default: categoryText = category; categoryClass = 'category-equipment';
+                }
+                
+                return (
+                  <div class="uk-flex uk-flex-between uk-margin-small">
+                    <span class={`category-tag ${categoryClass}`}>{categoryText}</span>
+                    <span class="uk-text-bold">{count} ({percentage}%)</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</Layout>

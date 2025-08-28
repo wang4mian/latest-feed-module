@@ -1,0 +1,555 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import { getArticles } from '@/lib/supabase';
+
+// 临时：获取所有文章来调试
+const { data: allArticles, error: allError } = await getArticles({
+  limit: 50,
+  sort: 'ai_score_desc'
+});
+
+// 临时解决方案：使用 ready_for_review 状态代替 adopted
+// TODO: 修复数据库约束后改回 'adopted'
+const { data: adoptedArticles, error } = await getArticles({
+  status: 'ready_for_review',
+  limit: 50,
+  sort: 'ai_score_desc'
+});
+
+// 调试信息
+console.log('编辑台 - 所有文章:', {
+  count: allArticles?.length || 0,
+  error: allError,
+  statuses: allArticles?.map(a => a.overall_status) || []
+});
+
+console.log('编辑台 - 已通过文章查询结果:', {
+  count: adoptedArticles?.length || 0,
+  error: error,
+  articles: adoptedArticles
+});
+
+// 格式化日期
+const formatDate = (dateString: string) => {
+  return new Date(dateString).toLocaleDateString('zh-CN', {
+    month: 'short', 
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+};
+
+// 获取分类显示文本
+const getCategoryText = (category: string) => {
+  const categoryMap: { [key: string]: string } = {
+    'Core Equipment': '核心设备',
+    'Supply Chain': '供应链', 
+    'Market Trends': '市场趋势',
+    'Technological Innovation': '技术创新',
+    'Business Models': '商业模式'
+  };
+  return categoryMap[category] || category || '未分类';
+};
+
+// 获取评分颜色
+const getScoreColor = (score: number) => {
+  if (score >= 80) return 'uk-text-success';
+  if (score >= 60) return 'uk-text-warning';
+  return 'uk-text-muted';
+};
+---
+
+<Layout title="编辑台 - 制造业情报系统">
+  <div class="editor-workspace">
+    <!-- 页面标题 -->
+    <div class="uk-container">
+      <div class="uk-text-center uk-margin-bottom">
+        <h1 class="uk-heading-medium uk-margin-remove">编辑台</h1>
+      </div>
+    </div>
+
+    <!-- 两栏式布局 -->
+    <div class="uk-grid-collapse uk-height-viewport uk-height-offset" uk-grid>
+      
+      <!-- 左栏：已通过文章列表 -->
+      <div class="uk-width-1-3 article-list-panel">
+        <div class="uk-background-muted uk-height-1-1">
+          <div class="uk-padding-small">
+            <!-- 文章列表标题 -->
+            <div class="uk-flex uk-flex-between uk-flex-middle uk-margin-bottom">
+              <h3 class="uk-heading-bullet uk-margin-remove">已通过文章</h3>
+              <span class="uk-badge uk-badge-success">
+                {adoptedArticles?.length || 0}
+              </span>
+            </div>
+            
+            <!-- 搜索框 -->
+            <div class="uk-margin-bottom">
+              <form class="uk-search uk-search-small uk-width-1-1">
+                <span class="uk-form-icon" uk-icon="search"></span>
+                <input class="uk-search-input" type="search" placeholder="搜索文章标题">
+              </form>
+            </div>
+            
+            <!-- 文章列表 -->
+            <div class="article-list uk-height-large uk-overflow-auto">
+              {adoptedArticles && adoptedArticles.length > 0 ? (
+                adoptedArticles.map((article: any) => (
+                  <div class="article-item uk-card uk-card-small uk-card-default uk-margin-small uk-card-hover" 
+                       data-article-id={article.id}>
+                    <div class="uk-card-body uk-padding-small">
+                      <!-- AI评分 -->
+                      <div class="uk-flex uk-flex-between uk-flex-middle uk-margin-small-bottom">
+                        <span class={`uk-text-bold ${getScoreColor(article.ai_score || 0)}`}>
+                          {article.ai_score || 0}
+                        </span>
+                        <span class="uk-text-small uk-text-muted">
+                          {formatDate(article.created_at)}
+                        </span>
+                      </div>
+                      
+                      <!-- 文章标题 -->
+                      <h5 class="uk-card-title uk-margin-remove uk-text-small">
+                        {article.title}
+                      </h5>
+                      
+                      <!-- 元信息 -->
+                      <div class="uk-text-small uk-text-muted uk-margin-small-top">
+                        <span>{article.rss_sources?.name || '未知来源'}</span>
+                        {article.ai_category && (
+                          <span class="uk-margin-small-left">
+                            • {getCategoryText(article.ai_category)}
+                          </span>
+                        )}
+                      </div>
+                      
+                      <!-- 操作按钮 -->
+                      <div class="uk-margin-small-top">
+                        <button class="uk-button uk-button-primary uk-button-small use-article" 
+                                data-id={article.id}>
+                          使用文章
+                        </button>
+                        <button class="uk-button uk-button-text uk-button-small view-original" 
+                                data-url={article.link}>
+                          查看原文
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div class="uk-text-center uk-padding uk-text-muted">
+                  <span uk-icon="icon: info; ratio: 2"></span>
+                  <p class="uk-margin-small-top">暂无已通过的文章</p>
+                  <p class="uk-text-small">请先到文章池筛选通过一些文章</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 右栏：Doocs MD 编辑器 -->
+      <div class="uk-width-expand editor-panel">
+        <div class="uk-height-1-1 uk-flex uk-flex-column">
+          
+          <!-- 编辑器头部 -->
+          <div class="editor-header uk-background-default uk-padding-small">
+            <div class="uk-flex uk-flex-between uk-flex-middle">
+              <div class="uk-text-muted">
+                <span uk-icon="edit"></span>
+                Doocs MD 编辑器
+              </div>
+              <div class="uk-button-group">
+                <button class="uk-button uk-button-default uk-button-small" id="refresh-editor">
+                  <span uk-icon="refresh"></span> 刷新编辑器
+                </button>
+                <a class="uk-button uk-button-primary uk-button-small" href="https://md.doocs.org/" target="_blank">
+                  <span uk-icon="link-external"></span> 新窗口打开
+                </a>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Doocs MD iframe 编辑器 -->
+          <div class="uk-flex-1 uk-position-relative">
+            <iframe 
+              id="doocs-editor"
+              src="https://md.doocs.org/"
+              class="uk-width-1-1 uk-height-1-1"
+              style="border: none; background: white;"
+              sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-top-navigation"
+            ></iframe>
+          </div>
+          
+          <!-- 编辑器状态栏 -->
+          <div class="editor-footer uk-background-muted uk-padding-small uk-text-small">
+            <div class="uk-flex uk-flex-between uk-flex-middle">
+              <div class="uk-text-muted">
+                <span uk-icon="info"></span>
+                Doocs MD 开源编辑器 - 支持实时预览、主题切换、数学公式、微信公众号样式
+              </div>
+              <div id="editor-status" class="uk-text-muted">
+                <span uk-icon="clock"></span> 编辑器加载中...
+              </div>
+            </div>
+          </div>
+          
+        </div>
+      </div>
+      
+    </div>
+  </div>
+
+</Layout>
+
+<script>
+  // 生成 Markdown 内容的函数
+  function generateMarkdownContent(article: any) {
+    const date = new Date(article.created_at).toLocaleDateString('zh-CN');
+    
+    let content = `# ${article.title}\n\n`;
+    
+    // 添加元信息
+    content += `**来源**: ${article.rss_sources?.name || '未知'}\n`;
+    content += `**发布时间**: ${date}\n`;
+    if (article.ai_score) {
+      content += `**AI评分**: ${article.ai_score}/100\n`;
+    }
+    if (article.ai_category) {
+      content += `**分类**: ${article.ai_category}\n`;
+    }
+    content += `**原文链接**: [查看原文](${article.link})\n\n`;
+    
+    content += `---\n\n`;
+    
+    // 添加AI摘要
+    if (article.ai_summary) {
+      content += `## AI 摘要\n\n${article.ai_summary}\n\n`;
+    }
+    
+    // 添加战略意义分析
+    if (article.ai_strategic_implication) {
+      content += `## 战略意义\n\n${article.ai_strategic_implication}\n\n`;
+    }
+    
+    // 添加原始描述
+    if (article.description) {
+      content += `## 原始摘要\n\n${article.description}\n\n`;
+    }
+    
+    // 添加完整内容（如果有）
+    if (article.full_content) {
+      content += `## 完整内容\n\n${article.full_content}\n\n`;
+    }
+    
+    content += `---\n\n`;
+    content += `*此内容由制造业情报系统自动生成，基于文章: "${article.title}"*\n`;
+    
+    return content;
+  }
+
+  // 插入内容到 Doocs MD 编辑器的函数
+  function insertContentToEditor(content: string): boolean {
+    const doocsIframe = document.getElementById('doocs-editor') as HTMLIFrameElement;
+    
+    if (!doocsIframe) {
+      console.error('Doocs MD 编辑器未找到');
+      return false;
+    }
+    
+    try {
+      // 通过 postMessage 发送内容到 Doocs MD
+      const message = {
+        type: 'INSERT_CONTENT',
+        content: content,
+        timestamp: Date.now()
+      };
+      
+      console.log('正在向 Doocs MD 发送内容...', content.length, '字符');
+      doocsIframe.contentWindow?.postMessage(message, 'https://md.doocs.org');
+      
+      // 同时复制到剪贴板作为备选方案
+      navigator.clipboard.writeText(content).then(() => {
+        console.log('✅ 内容已复制到剪贴板');
+      }).catch(err => {
+        console.log('剪贴板复制失败:', err);
+      });
+      
+      // 显示使用说明
+      UIkit.notification({
+        message: '内容已发送到编辑器并复制到剪贴板，如需要请在编辑器中粘贴（Ctrl+V）',
+        status: 'primary',
+        timeout: 5000
+      });
+      
+      return true;
+      
+    } catch (error) {
+      console.error('插入内容到 Doocs MD 失败:', error);
+      return false;
+    }
+  }
+  
+
+  document.addEventListener('DOMContentLoaded', function() {
+    console.log('=== 编辑台页面初始化 ===');
+    
+    // 检查 Doocs MD 编辑器
+    const doocsIframe = document.getElementById('doocs-editor') as HTMLIFrameElement;
+    const editorStatus = document.getElementById('editor-status');
+    
+    console.log('Doocs MD 编辑器:', !!doocsIframe);
+    
+    // 刷新编辑器按钮
+    document.getElementById('refresh-editor')?.addEventListener('click', function() {
+      if (doocsIframe) {
+        doocsIframe.src = doocsIframe.src; // 重新加载 iframe
+        if (editorStatus) {
+          editorStatus.innerHTML = '<span uk-icon="clock"></span> 编辑器重新加载中...';
+        }
+      }
+    });
+    
+    // iframe 加载完成事件
+    doocsIframe?.addEventListener('load', function() {
+      console.log('✅ Doocs MD 编辑器加载完成');
+      if (editorStatus) {
+        editorStatus.innerHTML = '<span uk-icon="check"></span> 编辑器就绪';
+      }
+    });
+    
+    // 监听来自 Doocs MD 的消息
+    window.addEventListener('message', function(event) {
+      // 确保消息来自 Doocs MD
+      if (event.origin !== 'https://md.doocs.org') {
+        return;
+      }
+      
+      console.log('收到来自 Doocs MD 的消息:', event.data);
+      
+      // 处理编辑器的响应
+      if (event.data.type === 'CONTENT_RECEIVED') {
+        UIkit.notification({
+          message: '✅ 内容已成功插入到 Doocs MD 编辑器',
+          status: 'success',
+          timeout: 3000
+        });
+      } else if (event.data.type === 'EDITOR_READY') {
+        console.log('Doocs MD 编辑器已准备好接收内容');
+        if (editorStatus) {
+          editorStatus.innerHTML = '<span uk-icon="check"></span> 编辑器就绪';
+        }
+      }
+    });
+    
+    // 使用文章按钮
+    const useArticleBtns = document.querySelectorAll('.use-article');
+    console.log('找到使用文章按钮数量:', useArticleBtns.length);
+    
+    useArticleBtns.forEach((btn, index) => {
+      console.log(`绑定第 ${index + 1} 个按钮事件监听器`);
+      
+      btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        console.log('=== 使用文章按钮被点击 ===');
+        
+        const articleId = (this as HTMLElement).dataset.id;
+        console.log('文章 ID:', articleId);
+        
+        // 获取文章内容并插入到编辑器
+        console.log('正在获取文章详情...');
+        
+        fetch(`/api/articles/${articleId}`)
+          .then(response => {
+            if (!response.ok) {
+              throw new Error(`HTTP错误: ${response.status}`);
+            }
+            return response.json();
+          })
+          .then(result => {
+            if (!result.success) {
+              throw new Error(result.error || '获取文章失败');
+            }
+            
+            const article = result.data;
+            console.log('✅ 获取文章成功:', article.title);
+            
+            // 准备要插入编辑器的内容
+            const content = generateMarkdownContent(article);
+            
+            console.log('准备插入内容到编辑器...');
+            
+            // 直接插入内容到编辑器
+            const success = insertContentToEditor(content);
+            
+            if (success) {
+              console.log('✅ 内容已发送到 Doocs MD 编辑器');
+            } else {
+              UIkit.notification({
+                message: '❌ 插入内容失败，请刷新页面重试',
+                status: 'danger',
+                timeout: 3000
+              });
+            }
+            
+            // 在控制台显示内容供调试
+            console.log('=== 生成的Markdown内容 ===');
+            console.log(content);
+            console.log('=== 内容结束 ===');
+            
+          })
+          .catch(error => {
+            console.error('❌ 获取文章失败:', error);
+            UIkit.notification({
+              message: `获取文章内容失败: ${error.message}`,
+              status: 'danger',
+              timeout: 4000
+            });
+          });
+      });
+    });
+    
+    // 查看原文按钮
+    document.querySelectorAll('.view-original').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const url = (this as HTMLElement).dataset.url;
+        if (url) {
+          window.open(url, '_blank');
+        }
+      });
+    });
+  });
+</script>
+
+<style>
+  /* ===== 编辑器布局样式 ===== */
+  
+  .editor-workspace {
+    height: 100vh;
+    overflow: hidden;
+  }
+  
+  .uk-height-offset {
+    height: calc(100vh - 120px); /* 减去页头和标题的高度 */
+  }
+  
+  /* 文章列表面板 */
+  .article-list-panel {
+    border-right: 1px solid #e5e7eb;
+    background: #f9fafb;
+  }
+  
+  .article-list {
+    max-height: calc(100vh - 300px);
+  }
+  
+  .article-item {
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  
+  .article-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* 编辑器面板 */
+  .editor-panel {
+    background: white;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .editor-header {
+    border-bottom: 1px solid #e5e7eb;
+    flex-shrink: 0;
+  }
+  
+  .editor-footer {
+    border-top: 1px solid #e5e7eb;
+    flex-shrink: 0;
+    min-height: 50px;
+  }
+  
+  
+  /* Doocs MD iframe 样式 */
+  #doocs-editor {
+    border: none;
+    background: #ffffff;
+    width: 100%;
+    height: 100%;
+  }
+  
+  /* 编辑器状态栏样式 */
+  #editor-status {
+    font-size: 12px;
+    color: #6b7280;
+  }
+  
+  /* 搜索框样式 */
+  .uk-search-small .uk-search-input {
+    height: 36px;
+    font-size: 14px;
+  }
+  
+  /* 文章项目内部样式 */
+  .article-item .uk-card-body {
+    padding: 12px !important;
+  }
+  
+  .article-item .uk-card-title {
+    font-size: 14px !important;
+    line-height: 1.4 !important;
+    margin: 0 0 8px 0 !important;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  
+  /* 响应式调整 */
+  @media (max-width: 768px) {
+    .uk-width-1-3 {
+      width: 100% !important;
+      max-width: none !important;
+    }
+    
+    .uk-width-expand {
+      width: 100% !important;
+    }
+    
+    .uk-grid-collapse {
+      flex-direction: column !important;
+    }
+    
+    .article-list-panel {
+      max-height: 40vh;
+      border-right: none;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    
+  }
+  
+  /* 按钮组样式增强 */
+  .uk-button-group .uk-button {
+    transition: all 0.2s ease;
+  }
+  
+  .uk-button-group .uk-button:hover {
+    transform: translateY(-1px);
+  }
+  
+  /* 状态栏链接样式 */
+  .editor-footer a {
+    color: #6b7280;
+    text-decoration: none;
+    transition: color 0.2s ease;
+  }
+  
+  .editor-footer a:hover {
+    color: #3b82f6;
+    text-decoration: underline;
+  }
+</style>
+</Layout>

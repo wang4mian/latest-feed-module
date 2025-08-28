@@ -1,0 +1,481 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import { supabase, getArticleStats } from '@/lib/supabase';
+
+// 获取分析数据
+const { statusStats, categoryStats } = await getArticleStats();
+
+// 获取实体数据
+const { data: entities } = await supabase
+  .from('entities')
+  .select(`
+    *,
+    article_entities (
+      article_id,
+      extraction_confidence,
+      articles (
+        title,
+        relevance_score,
+        primary_category,
+        overall_status
+      )
+    )
+  `)
+  .order('created_at', { ascending: false })
+  .limit(100);
+
+// 获取高价值文章的战略分析
+const { data: strategicArticles } = await supabase
+  .from('articles')
+  .select(`
+    id,
+    title,
+    relevance_score,
+    strategic_implication,
+    primary_category,
+    created_at,
+    rss_sources (
+      name,
+      vertical_name
+    )
+  `)
+  .eq('overall_status', 'high_value')
+  .not('strategic_implication', 'is', null)
+  .order('relevance_score', { ascending: false })
+  .limit(10);
+
+// 处理实体统计
+const entityStats = entities ? entities.reduce((acc: Record<string, any>, entity: any) => {
+  const type = entity.entity_type;
+  if (!acc[type]) {
+    acc[type] = { count: 0, entities: [] };
+  }
+  acc[type].count++;
+  acc[type].entities.push({
+    name: entity.original_name,
+    articleCount: entity.article_entities.length,
+    avgScore: entity.article_entities.reduce((sum: number, ae: any) => 
+      sum + (ae.articles?.relevance_score || 0), 0) / entity.article_entities.length || 0
+  });
+  return acc;
+}, {}) : {};
+
+// 按文章数量排序实体
+Object.keys(entityStats).forEach(type => {
+  entityStats[type].entities.sort((a: any, b: any) => b.articleCount - a.articleCount);
+});
+---
+
+<Layout title="战略分析室 - 制造业情报系统">
+  <div class="uk-section uk-section-small">
+    <div class="uk-container uk-container-expand">
+      <!-- 页面标题 -->
+      <div class="uk-flex uk-flex-between uk-flex-middle uk-margin-medium-bottom">
+        <div>
+          <h1 class="uk-heading-medium uk-margin-remove-bottom">
+            <span uk-icon="world" class="uk-margin-small-right"></span>
+            战略分析室
+          </h1>
+          <p class="uk-text-meta uk-margin-remove-top">
+            情报分析 • 趋势洞察 • 战略决策支持
+          </p>
+        </div>
+        
+        <div class="uk-flex uk-flex-middle">
+          <button class="uk-button uk-button-primary uk-margin-small-right">
+            <span uk-icon="download"></span> 导出报告
+          </button>
+          <button class="uk-button uk-button-default uk-margin-small-right">
+            <span uk-icon="refresh"></span> 刷新数据
+          </button>
+          <button class="uk-button uk-button-default">
+            <span uk-icon="settings"></span> 配置
+          </button>
+        </div>
+      </div>
+
+      <!-- 导航标签 -->
+      <ul class="uk-tab uk-margin-bottom" uk-tab>
+        <li class="uk-active"><a href="#">概览仪表板</a></li>
+        <li><a href="#">实体关系图</a></li>
+        <li><a href="#">趋势分析</a></li>
+        <li><a href="#">竞争情报</a></li>
+        <li><a href="#">风险监控</a></li>
+      </ul>
+
+      <div class="uk-switcher">
+        <!-- 概览仪表板 -->
+        <div>
+          <!-- 核心指标 -->
+          <div class="uk-grid-match uk-child-width-1-4@l uk-child-width-1-2@m uk-margin-bottom" uk-grid>
+            <div>
+              <div class="uk-card uk-card-default uk-card-body uk-text-center">
+                <span uk-icon="icon: trending-up; ratio: 2" class="uk-text-success"></span>
+                <h3 class="uk-card-title uk-margin-small-top">
+                  {strategicArticles?.length || 0}
+                </h3>
+                <p class="uk-text-muted">高价值情报</p>
+                <span class="uk-text-success uk-text-small">
+                  <span uk-icon="arrow-up"></span> +15% 本周
+                </span>
+              </div>
+            </div>
+            
+            <div>
+              <div class="uk-card uk-card-default uk-card-body uk-text-center">
+                <span uk-icon="icon: tag; ratio: 2" class="uk-text-primary"></span>
+                <h3 class="uk-card-title uk-margin-small-top">
+                  {Object.values(entityStats).reduce((sum: number, stat: any) => sum + stat.count, 0)}
+                </h3>
+                <p class="uk-text-muted">识别实体</p>
+                <span class="uk-text-primary uk-text-small">
+                  <span uk-icon="plus"></span> 新增 {entityStats.company?.count || 0} 家公司
+                </span>
+              </div>
+            </div>
+            
+            <div>
+              <div class="uk-card uk-card-default uk-card-body uk-text-center">
+                <span uk-icon="icon: warning; ratio: 2" class="uk-text-warning"></span>
+                <h3 class="uk-card-title uk-margin-small-top">3</h3>
+                <p class="uk-text-muted">风险信号</p>
+                <span class="uk-text-warning uk-text-small">
+                  <span uk-icon="info"></span> 需要关注
+                </span>
+              </div>
+            </div>
+            
+            <div>
+              <div class="uk-card uk-card-default uk-card-body uk-text-center">
+                <span uk-icon="icon: lifesaver; ratio: 2" class="uk-text-secondary"></span>
+                <h3 class="uk-card-title uk-margin-small-top">7</h3>
+                <p class="uk-text-muted">投资机会</p>
+                <span class="uk-text-success uk-text-small">
+                  <span uk-icon="check"></span> 高置信度
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div uk-grid>
+            <!-- 战略洞察 -->
+            <div class="uk-width-2-3@l">
+              <div class="uk-card uk-card-default">
+                <div class="uk-card-header">
+                  <h3 class="uk-card-title">
+                    <span uk-icon="bolt" class="uk-margin-small-right"></span>
+                    最新战略洞察
+                  </h3>
+                </div>
+                <div class="uk-card-body">
+                  {strategicArticles && strategicArticles.slice(0, 5).map((article) => (
+                    <div class="uk-flex uk-margin-medium-bottom">
+                      <div class="uk-margin-right">
+                        <span class="uk-text-large uk-text-primary">{article.relevance_score}</span>
+                        <div class="uk-text-small uk-text-muted">评分</div>
+                      </div>
+                      <div class="uk-width-expand">
+                        <h4 class="uk-margin-remove-bottom">
+                          <a href={`/articles/${article.id}`} class="uk-link-text">
+                            {article.title}
+                          </a>
+                        </h4>
+                        <p class="uk-text-meta uk-margin-remove-top">
+                          {article.rss_sources?.name} • 
+                          {new Date(article.created_at).toLocaleDateString('zh-CN')}
+                        </p>
+                        <p class="uk-text-small uk-margin-small-top">
+                          <strong>战略影响：</strong>
+                          {article.strategic_implication?.substring(0, 120)}
+                          {article.strategic_implication?.length > 120 ? '...' : ''}
+                        </p>
+                        <div class="uk-margin-small-top">
+                          {article.primary_category && (
+                            <span class={`category-tag category-${
+                              article.primary_category === 'Core Equipment' ? 'equipment' :
+                              article.primary_category === 'Supply Chain' ? 'supply' :
+                              article.primary_category === 'Market Trends' ? 'trends' :
+                              article.primary_category === 'Technological Innovation' ? 'innovation' :
+                              'business'
+                            }`}>
+                              {
+                                article.primary_category === 'Core Equipment' ? '核心设备' :
+                                article.primary_category === 'Supply Chain' ? '供应链' :
+                                article.primary_category === 'Market Trends' ? '市场趋势' :
+                                article.primary_category === 'Technological Innovation' ? '技术创新' :
+                                '商业模式'
+                              }
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  
+                  <div class="uk-text-center uk-margin-top">
+                    <a href="/pool?status=high_value" class="uk-button uk-button-text">
+                      查看所有高价值情报 →
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 实体热力图 -->
+            <div class="uk-width-1-3@l">
+              <div class="uk-card uk-card-default">
+                <div class="uk-card-header">
+                  <h3 class="uk-card-title">
+                    <span uk-icon="users" class="uk-margin-small-right"></span>
+                    关键实体
+                  </h3>
+                </div>
+                <div class="uk-card-body">
+                  {Object.entries(entityStats).map(([type, stats]) => {
+                    const typeNames = {
+                      company: '公司',
+                      technology: '技术',
+                      person: '人物'
+                    };
+                    
+                    return (
+                      <div class="uk-margin-medium-bottom">
+                        <h5 class="uk-text-bold uk-margin-small-bottom">
+                          {typeNames[type as keyof typeof typeNames] || type} 
+                          <span class="uk-badge uk-margin-small-left">{stats.count}</span>
+                        </h5>
+                        <div class="uk-grid-small uk-child-width-1-1" uk-grid>
+                          {stats.entities.slice(0, 5).map((entity, index) => (
+                            <div>
+                              <div class="uk-flex uk-flex-between uk-flex-middle">
+                                <span class="uk-text-small uk-text-truncate" style="max-width: 120px;">
+                                  {entity.name}
+                                </span>
+                                <div class="uk-text-right">
+                                  <span class="uk-text-small uk-text-muted">
+                                    {entity.articleCount}篇
+                                  </span>
+                                  <div class="uk-progress uk-margin-small-top" style="height: 4px;">
+                                    <div class="uk-progress-bar" 
+                                         style={`width: ${Math.min(100, (entity.articleCount / stats.entities[0]?.articleCount) * 100)}%`}></div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        {stats.entities.length > 5 && (
+                          <div class="uk-text-center uk-margin-small-top">
+                            <a href="#" class="uk-text-small uk-link-muted">
+                              查看全部 {stats.entities.length} 个
+                            </a>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 分类趋势和预警 -->
+          <div uk-grid class="uk-margin-top">
+            <div class="uk-width-1-2@m">
+              <div class="uk-card uk-card-default">
+                <div class="uk-card-header">
+                  <h3 class="uk-card-title">
+                    <span uk-icon="pie-chart" class="uk-margin-small-right"></span>
+                    分类分布趋势
+                  </h3>
+                </div>
+                <div class="uk-card-body">
+                  <div class="category-chart" style="height: 200px; background: #f8f9fa; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                    <span class="uk-text-muted">分类分布图表</span>
+                  </div>
+                  <div class="uk-margin-top">
+                    <div class="uk-grid-small uk-text-small" uk-grid>
+                      {Object.entries(categoryStats.reduce((acc, item) => {
+                        acc[item.primary_category] = (acc[item.primary_category] || 0) + 1;
+                        return acc;
+                      }, {})).slice(0, 3).map(([category, count]) => (
+                        <div class="uk-width-1-3">
+                          <div class="uk-text-center">
+                            <div class="uk-text-large uk-text-primary">{count}</div>
+                            <div class="uk-text-muted">
+                              {category === 'Core Equipment' ? '核心设备' :
+                               category === 'Supply Chain' ? '供应链' :
+                               category === 'Market Trends' ? '市场趋势' : category}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="uk-width-1-2@m">
+              <div class="uk-card uk-card-default">
+                <div class="uk-card-header">
+                  <h3 class="uk-card-title">
+                    <span uk-icon="warning" class="uk-margin-small-right"></span>
+                    风险预警
+                  </h3>
+                </div>
+                <div class="uk-card-body">
+                  <div class="uk-alert uk-alert-warning">
+                    <p class="uk-margin-remove-bottom">
+                      <strong>供应链风险</strong>
+                    </p>
+                    <p class="uk-text-small uk-margin-remove-top">
+                      检测到多篇文章提及关键供应商产能问题，建议密切关注。
+                    </p>
+                  </div>
+                  
+                  <div class="uk-alert uk-alert-primary">
+                    <p class="uk-margin-remove-bottom">
+                      <strong>技术机遇</strong>
+                    </p>
+                    <p class="uk-text-small uk-margin-remove-top">
+                      AI芯片技术突破相关报道增加，可能带来新投资机会。
+                    </p>
+                  </div>
+                  
+                  <div class="uk-alert uk-alert-success">
+                    <p class="uk-margin-remove-bottom">
+                      <strong>市场信号</strong>
+                    </p>
+                    <p class="uk-text-small uk-margin-remove-top">
+                      智能制造政策支持力度加大，行业前景持续向好。
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 实体关系图 -->
+        <div>
+          <div class="uk-card uk-card-default">
+            <div class="uk-card-header">
+              <div class="uk-flex uk-flex-between uk-flex-middle">
+                <h3 class="uk-card-title">实体关系网络</h3>
+                <div class="uk-button-group">
+                  <button class="uk-button uk-button-default uk-button-small">公司</button>
+                  <button class="uk-button uk-button-default uk-button-small">技术</button>
+                  <button class="uk-button uk-button-default uk-button-small">人物</button>
+                </div>
+              </div>
+            </div>
+            <div class="uk-card-body">
+              <div class="entity-network" style="height: 400px; background: #f8f9fa; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                <div class="uk-text-center">
+                  <span uk-icon="icon: world; ratio: 3" class="uk-text-muted"></span>
+                  <h4 class="uk-text-muted uk-margin-top">实体关系图</h4>
+                  <p class="uk-text-muted">可视化实体间的关联关系</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 趋势分析 -->
+        <div>
+          <div class="uk-card uk-card-default">
+            <div class="uk-card-header">
+              <h3 class="uk-card-title">趋势分析</h3>
+            </div>
+            <div class="uk-card-body">
+              <div class="trend-chart" style="height: 300px; background: #f8f9fa; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                <div class="uk-text-center">
+                  <span uk-icon="icon: trending-up; ratio: 3" class="uk-text-muted"></span>
+                  <h4 class="uk-text-muted uk-margin-top">趋势分析图表</h4>
+                  <p class="uk-text-muted">显示关键指标的时间趋势</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 竞争情报 -->
+        <div>
+          <div class="uk-card uk-card-default">
+            <div class="uk-card-header">
+              <h3 class="uk-card-title">竞争情报</h3>
+            </div>
+            <div class="uk-card-body">
+              <div class="competitor-analysis" style="height: 300px; background: #f8f9fa; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                <div class="uk-text-center">
+                  <span uk-icon="icon: users; ratio: 3" class="uk-text-muted"></span>
+                  <h4 class="uk-text-muted uk-margin-top">竞争格局分析</h4>
+                  <p class="uk-text-muted">主要竞争对手动态追踪</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 风险监控 -->
+        <div>
+          <div class="uk-card uk-card-default">
+            <div class="uk-card-header">
+              <h3 class="uk-card-title">风险监控</h3>
+            </div>
+            <div class="uk-card-body">
+              <div class="risk-monitor" style="height: 300px; background: #f8f9fa; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                <div class="uk-text-center">
+                  <span uk-icon="icon: warning; ratio: 3" class="uk-text-muted"></span>
+                  <h4 class="uk-text-muted uk-margin-top">风险监控面板</h4>
+                  <p class="uk-text-muted">实时监控各类风险指标</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // 这里可以添加图表初始化代码
+    console.log('战略分析室已加载');
+    
+    // 模拟数据更新
+    setInterval(() => {
+      // 可以添加实时数据更新逻辑
+    }, 30000); // 每30秒更新一次
+  });
+</script>
+
+<style>
+  /* 进度条样式 */
+  .uk-progress {
+    background: #e5e5e5;
+  }
+  
+  .uk-progress-bar {
+    background: linear-gradient(90deg, #0ea5e9, #06b6d4);
+  }
+  
+  /* 卡片悬停效果 */
+  .uk-card-default:hover {
+    box-shadow: 0 14px 25px rgba(0, 0, 0, 0.16);
+    transform: translateY(-1px);
+    transition: all 0.3s ease;
+  }
+  
+  /* 图表容器样式 */
+  .category-chart,
+  .entity-network,
+  .trend-chart,
+  .competitor-analysis,
+  .risk-monitor {
+    border: 1px dashed #d1d5db;
+  }
+</style>
+</Layout>

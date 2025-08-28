@@ -1,0 +1,720 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import { getArticles } from '@/lib/supabase';
+
+// 获取URL参数
+const url = Astro.url;
+const category = url.searchParams.get('category') || '';
+const source = url.searchParams.get('source') || '';
+const search = url.searchParams.get('search') || '';
+const sort = url.searchParams.get('sort') || 'ai_score_desc';
+const page = parseInt(url.searchParams.get('page') || '1');
+const limit = 20;
+const offset = (page - 1) * limit;
+
+// 构建筛选条件
+const filters: any = { limit, offset };
+if (category) filters.category = category;
+if (source) filters.source = source;
+if (search) filters.search = search;
+if (sort) filters.sort = sort;
+
+// 初始化变量
+let articles: any[] = [];
+let error: any = null;
+let count: number = 0;
+let totalPages: number = 1;
+let hasArticles: boolean = false;
+
+try {
+  const response = await getArticles(filters);
+  articles = response.data || [];
+  error = response.error;
+  count = response.count || 0;
+  
+  totalPages = count ? Math.ceil(count / limit) : 1;
+  hasArticles = articles && articles.length > 0;
+
+  // 调试信息
+  console.log('文章池 - 数据查询结果:', {
+    filters,
+    count: articles.length,
+    error: error,
+    totalCount: count,
+    hasArticles,
+    sampleArticle: articles[0] || null
+  });
+
+} catch (err) {
+  console.error('页面加载错误:', err);
+  error = err;
+}
+
+// 格式化日期
+const formatDate = (dateString: string) => {
+  return new Date(dateString).toLocaleDateString('zh-CN', {
+    month: 'short', 
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+};
+
+// 获取评分徽章样式类
+const getScoreBadgeClass = (score: number) => {
+  if (score >= 80) return 'high';    // 绿色
+  if (score >= 60) return 'medium';  // 黄色
+  return 'low';                      // 灰色
+};
+
+// 分类显示
+const getCategoryText = (category: string) => {
+  const categoryMap: { [key: string]: string } = {
+    'Core Equipment': '核心设备',
+    'Supply Chain': '供应链',
+    'Market Trends': '市场趋势',
+    'Technological Innovation': '技术创新',
+    'Business Models': '商业模式'
+  };
+  return categoryMap[category] || category || '未分类';
+};
+
+// 获取分类样式类
+const getCategoryClass = (category: string) => {
+  const classMap: { [key: string]: string } = {
+    'Core Equipment': 'equipment',
+    'Supply Chain': 'supply',
+    'Market Trends': 'trends', 
+    'Technological Innovation': 'innovation',
+    'Business Models': 'business'
+  };
+  return classMap[category] || 'default';
+};
+
+// 状态显示
+const getStatusText = (status: string) => {
+  const statusMap: { [key: string]: string } = {
+    'pending': '待处理',
+    'adopted': '已通过',
+    'archived': '已归档', 
+    'ignored': '已忽略',
+    'draft': '草稿'
+  };
+  return statusMap[status] || status;
+};
+---
+
+<Layout title="文章池 - 制造业情报系统">
+  <div class="uk-container">
+    <!-- 页面标题 -->
+    <div class="uk-text-center uk-margin-bottom">
+      <h1 class="uk-heading-medium uk-margin-remove">文章池</h1>
+    </div>
+
+    <!-- 筛选栏 - 窄窄的一横溜 -->
+    <div class="filter-bar uk-background-muted uk-padding-small uk-margin-bottom">
+      <div class="uk-flex uk-flex-middle uk-flex-wrap uk-grid-small" uk-grid>
+        <!-- 搜索框 -->
+        <div>
+          <form class="uk-search uk-search-small">
+            <span class="uk-form-icon" uk-icon="search"></span>
+            <input class="uk-search-input" type="search" name="search" value={search} placeholder="搜索标题">
+          </form>
+        </div>
+        
+        <!-- 分类筛选 -->
+        <div>
+          <select class="uk-select uk-form-small" name="category" onchange="filterChange()">
+            <option value="">全部分类</option>
+            <option value="Core Equipment" {category === 'Core Equipment' ? 'selected' : ''}>核心设备</option>
+            <option value="Supply Chain" {category === 'Supply Chain' ? 'selected' : ''}>供应链</option>
+            <option value="Market Trends" {category === 'Market Trends' ? 'selected' : ''}>市场趋势</option>
+            <option value="Technological Innovation" {category === 'Technological Innovation' ? 'selected' : ''}>技术创新</option>
+            <option value="Business Models" {category === 'Business Models' ? 'selected' : ''}>商业模式</option>
+          </select>
+        </div>
+        
+        <!-- 状态筛选 -->
+        <div>
+          <select class="uk-select uk-form-small" name="status" onchange="filterChange()">
+            <option value="">全部状态</option>
+            <option value="pending">待处理</option>
+            <option value="adopted">已通过</option>
+            <option value="archived">已归档</option>
+            <option value="ignored">已忽略</option>
+          </select>
+        </div>
+        
+        <!-- 排序 -->
+        <div>
+          <select class="uk-select uk-form-small" name="sort" onchange="filterChange()">
+            <option value="ai_score_desc" {sort === 'ai_score_desc' ? 'selected' : ''}>AI评分↓</option>
+            <option value="ai_score_asc" {sort === 'ai_score_asc' ? 'selected' : ''}>AI评分↑</option>
+            <option value="created_at_desc" {sort === 'created_at_desc' ? 'selected' : ''}>发布日期↓</option>
+            <option value="created_at_asc" {sort === 'created_at_asc' ? 'selected' : ''}>发布日期↑</option>
+          </select>
+        </div>
+        
+        <!-- 统计信息 -->
+        <div class="uk-width-expand uk-text-right">
+          <span class="uk-text-small uk-text-muted">
+            共 <strong>{count}</strong> 篇 • 第 <strong>{page}</strong>/{totalPages} 页
+          </span>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- 文章摘要卡片列表 -->
+    {hasArticles ? (
+      <div class="article-pool">
+        {articles.map((article: any) => (
+          <div class="summary-card uk-card uk-card-default uk-card-small uk-margin-small" data-article-id={article.id}>
+              <div class="uk-card-body uk-padding-small">
+                <div class="uk-grid uk-grid-small" uk-grid>
+                  <!-- AI评分区域 -->
+                  <div class="uk-width-auto">
+                    <div class={`score-badge score-${getScoreBadgeClass(article.ai_score || 0)}`}>
+                      <div class="score-number">{article.ai_score || 0}</div>
+                    </div>
+                  </div>
+                  
+                  <!-- 文章内容 -->
+                  <div class="uk-width-expand">
+                    <h3 class="uk-card-title uk-margin-small-bottom">
+                      <a href={article.link} target="_blank" class="uk-link-reset">{article.title}</a>
+                    </h3>
+                    
+                    <!-- 元信息条 -->
+                    <div class="meta-line uk-text-small uk-text-muted uk-margin-small-top">
+                      <span class="source-name">{article.rss_sources?.name || '未知来源'}</span>
+                      <span class="separator">•</span>
+                      <span class={`category-badge category-${getCategoryClass(article.ai_category)}`}>
+                        {getCategoryText(article.ai_category || '')}
+                      </span>
+                      <span class="separator">•</span>
+                      <span class={`status-badge status-${article.overall_status || 'pending'}`}>
+                        {getStatusText(article.overall_status || 'pending')}
+                      </span>
+                    </div>
+                    
+                    {article.ai_summary && (
+                      <p class="uk-text-small uk-margin-small-bottom">
+                        {article.ai_summary.split('\n').slice(0, 2).join('\n')}
+                        {article.ai_summary.split('\n').length > 2 && '...'}
+                      </p>
+                    )}
+                  </div>
+                  
+                  <!-- 操作按钮区域 -->
+                  <div class="uk-width-auto">
+                    <div class="action-buttons uk-flex uk-flex-middle">
+                      <!-- 核心操作按钮 -->
+                      <div class="uk-button-group uk-margin-small-right">
+                        <button class="uk-button uk-button-success uk-button-small" 
+                                data-action="adopt" data-id={article.id} title="通过">
+                          ✅
+                        </button>
+                        <button class="uk-button uk-button-default uk-button-small" 
+                                data-action="archive" data-id={article.id} title="归档">
+                          🗄️
+                        </button>
+                        <button class="uk-button uk-button-danger uk-button-small" 
+                                data-action="ignore" data-id={article.id} title="忽略">
+                          ❌
+                        </button>
+                      </div>
+                      
+                      <!-- 详情展开按钮 -->
+                      <button class="uk-button uk-button-text uk-button-small expand-details" 
+                              data-id={article.id} title="查看详情">
+                        📖
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- 详情区域 (默认隐藏，点击展开) -->
+              <div class="article-details uk-hidden" data-id={article.id}>
+                <div class="uk-card-body uk-padding-small uk-background-muted">
+                  <!-- 详情内容将通过JavaScript动态加载 -->
+                  <div class="details-loading uk-text-center uk-text-muted">
+                    <div uk-spinner class="uk-margin-small-right"></div>
+                    加载详细信息中...
+                  </div>
+                </div>
+              </div>
+              
+            </div>
+          </div>
+        ))}
+      </div>
+    ) : (
+      <div class="uk-text-center uk-padding-large">
+        <h3 class="uk-text-muted">暂无文章</h3>
+        <p class="uk-text-muted">还没有文章数据，请等待系统自动抓取</p>
+      </div>
+    )}
+
+    <!-- 简单分页 -->
+    {totalPages > 1 && (
+      <div class="uk-flex uk-flex-center uk-margin-top">
+        <ul class="uk-pagination">
+          {page > 1 && <li><a href={`?page=${page - 1}&category=${category}&sort=${sort}&search=${search}`}>上一页</a></li>}
+          <li><span>{page} / {totalPages}</span></li>
+          {page < totalPages && <li><a href={`?page=${page + 1}&category=${category}&sort=${sort}&search=${search}`}>下一页</a></li>}
+        </ul>
+      </div>
+    )}
+  </div>
+</Layout>
+
+<script>
+  // 筛选变更函数
+  function filterChange() {
+    const searchInput = document.querySelector('input[name="search"]') as HTMLInputElement;
+    const categorySelect = document.querySelector('select[name="category"]') as HTMLSelectElement;
+    const statusSelect = document.querySelector('select[name="status"]') as HTMLSelectElement;
+    const sortSelect = document.querySelector('select[name="sort"]') as HTMLSelectElement;
+    
+    const params = new URLSearchParams();
+    if (searchInput?.value?.trim()) params.set('search', searchInput.value.trim());
+    if (categorySelect?.value) params.set('category', categorySelect.value);
+    if (statusSelect?.value) params.set('status', statusSelect.value);
+    if (sortSelect?.value) params.set('sort', sortSelect.value);
+    
+    window.location.href = `${window.location.pathname}?${params.toString()}`;
+  }
+  
+  // 切换详情展开/收起
+  async function toggleArticleDetails(articleId: string) {
+    const detailsDiv = document.querySelector(`.article-details[data-id="${articleId}"]`);
+    const expandBtn = document.querySelector(`.expand-details[data-id="${articleId}"]`);
+    
+    if (!detailsDiv || !expandBtn) return;
+    
+    if (detailsDiv.classList.contains('uk-hidden')) {
+      // 展开详情
+      detailsDiv.classList.remove('uk-hidden');
+      expandBtn.textContent = '📖';
+      expandBtn.setAttribute('title', '收起详情');
+      
+      // 模拟加载详细信息
+      setTimeout(() => {
+        const loadingDiv = detailsDiv.querySelector('.details-loading');
+        if (loadingDiv) {
+          loadingDiv.innerHTML = `
+            <div class="uk-grid uk-grid-small" uk-grid>
+              <div class="uk-width-1-2">
+                <h5 class="uk-heading-bullet">AI摘要</h5>
+                <p class="uk-text-small">这里显示AI生成的详细摘要内容...</p>
+              </div>
+              <div class="uk-width-1-2">
+                <h5 class="uk-heading-bullet">战略意义</h5>
+                <p class="uk-text-small">这里显示战略意义分析...</p>
+              </div>
+              <div class="uk-width-1-1">
+                <h5 class="uk-heading-bullet">关键实体</h5>
+                <div>
+                  <span class="uk-label uk-margin-small-right">实体1</span>
+                  <span class="uk-label uk-margin-small-right">实体2</span>
+                  <span class="uk-label uk-margin-small-right">实体3</span>
+                </div>
+              </div>
+              <div class="uk-width-1-1 uk-text-right uk-margin-small-top">
+                <a href="#" class="uk-button uk-button-text uk-button-small">查看原文 ↗</a>
+              </div>
+            </div>
+          `;
+        }
+      }, 800);
+    } else {
+      // 收起详情
+      detailsDiv.classList.add('uk-hidden');
+      expandBtn.textContent = '📖';
+      expandBtn.setAttribute('title', '查看详情');
+    }
+  }
+  
+  // JavaScript版本的状态显示函数
+  function getStatusText(status: string) {
+    const statusMap: { [key: string]: string } = {
+      'pending': '待处理',
+      'adopted': '已通过',
+      'archived': '已归档', 
+      'ignored': '已忽略',
+      'draft': '草稿'
+    };
+    return statusMap[status] || status;
+  }
+  
+  // 执行文章操作
+  async function executeArticleAction(action: string, articleId: string) {
+    console.log(`执行操作: ${action}, 文章ID: ${articleId}`);
+    
+    const button = document.querySelector(`[data-action="${action}"][data-id="${articleId}"]`);
+    if (!button) return;
+    
+    const originalText = button.textContent;
+    button.setAttribute('disabled', 'true');
+    button.textContent = '⏳';
+    
+    // 映射操作到状态 (临时解决方案)
+    const statusMap: { [key: string]: string } = {
+      'adopt': 'ready_for_review', // 临时使用 ready_for_review 代替 adopted
+      'archive': 'draft',          // 临时使用 draft 代替 archived
+      'ignore': 'draft'            // 临时使用 draft 代替 ignored
+    };
+    
+    const newStatus = statusMap[action];
+    if (!newStatus) {
+      console.error('未知操作:', action);
+      return;
+    }
+    
+    try {
+      // 调用真实 API 更新状态
+      const response = await fetch(`/api/articles/${articleId}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP错误: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        // 成功更新
+        button.textContent = action === 'adopt' ? '✅' : action === 'archive' ? '🗄️' : '❌';
+        
+        // 更新卡片样式表示已处理
+        const card = button.closest('.summary-card');
+        if (card) {
+          card.classList.add(`processed-${action}`);
+          card.style.opacity = '0.7';
+          
+          // 更新状态显示
+          const statusBadge = card.querySelector('.status-badge');
+          if (statusBadge) {
+            statusBadge.textContent = getStatusText(newStatus);
+            statusBadge.className = `status-badge status-${newStatus}`;
+          }
+        }
+        
+        console.log('✅ 文章状态更新成功:', result.message);
+        
+        // 显示成功通知
+        if (typeof UIkit !== 'undefined') {
+          UIkit.notification({
+            message: result.message,
+            status: 'success',
+            timeout: 2000
+          });
+        }
+        
+        // 2秒后恢复按钮
+        setTimeout(() => {
+          button.removeAttribute('disabled');
+          button.textContent = originalText;
+        }, 2000);
+        
+      } else {
+        throw new Error(result.error || '更新失败');
+      }
+      
+    } catch (error) {
+      console.error('❌ 更新文章状态失败:', error);
+      
+      // 恢复按钮状态
+      button.removeAttribute('disabled');
+      button.textContent = originalText;
+      
+      // 显示错误通知
+      if (typeof UIkit !== 'undefined') {
+        UIkit.notification({
+          message: '更新失败: ' + error.message,
+          status: 'danger',
+          timeout: 4000
+        });
+      }
+    }
+  }
+  
+  // DOM加载完成后的初始化
+  document.addEventListener('DOMContentLoaded', function() {
+    // 搜索表单提交
+    const searchForm = document.querySelector('.uk-search');
+    searchForm?.addEventListener('submit', function(e) {
+      e.preventDefault();
+      filterChange();
+    });
+    
+    // 事件委托处理所有按钮点击
+    document.addEventListener('click', function(e) {
+      const target = e.target as HTMLElement;
+      
+      // 操作按钮
+      if (target.hasAttribute('data-action')) {
+        const action = target.getAttribute('data-action')!;
+        const articleId = target.getAttribute('data-id')!;
+        executeArticleAction(action, articleId);
+      }
+      
+      // 详情展开按钮
+      if (target.classList.contains('expand-details')) {
+        const articleId = target.getAttribute('data-id')!;
+        toggleArticleDetails(articleId);
+      }
+    });
+  });
+</script>
+</Layout>
+
+<style is:global>
+  /* ===== 文章池专用样式 ===== */
+  
+  /* AI评分徽章 - 加强特异性 */
+  .article-pool .score-badge {
+    width: 60px !important;
+    height: 60px !important;
+    border-radius: 12px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-weight: bold !important;
+    color: white !important;
+    position: relative !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+    border: 2px solid rgba(255, 255, 255, 0.2) !important;
+  }
+  
+  .article-pool .score-badge.score-high {
+    background: linear-gradient(135deg, #10b981, #059669) !important;
+    box-shadow: 0 4px 16px rgba(16, 185, 129, 0.4) !important;
+  }
+  
+  .article-pool .score-badge.score-medium {
+    background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+    box-shadow: 0 4px 16px rgba(245, 158, 11, 0.4) !important;
+  }
+  
+  .article-pool .score-badge.score-low {
+    background: linear-gradient(135deg, #6b7280, #4b5563) !important;
+    box-shadow: 0 4px 16px rgba(107, 114, 128, 0.4) !important;
+  }
+  
+  .article-pool .score-number {
+    font-size: 28px !important;
+    line-height: 1 !important;
+    font-weight: 900 !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+  }
+  
+  /* 元信息条 - 增强样式 */
+  .article-pool .meta-line {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    flex-wrap: wrap !important;
+    margin-top: 8px !important;
+  }
+  
+  .article-pool .separator {
+    color: #9ca3af !important;
+    font-weight: bold !important;
+    font-size: 14px !important;
+  }
+  
+  .article-pool .source-name {
+    font-weight: 600 !important;
+    color: #374151 !important;
+  }
+  
+  /* 分类徽章 - 增强样式 */
+  .article-pool .category-badge {
+    display: inline-block !important;
+    padding: 4px 10px !important;
+    border-radius: 16px !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+    border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  }
+  
+  .article-pool .category-equipment { background: #f3e8ff !important; color: #7c3aed !important; border-color: #c4b5fd !important; }
+  .article-pool .category-supply { background: #fef3c7 !important; color: #d97706 !important; border-color: #fcd34d !important; }
+  .article-pool .category-trends { background: #dbeafe !important; color: #2563eb !important; border-color: #93c5fd !important; }
+  .article-pool .category-innovation { background: #dcfce7 !important; color: #16a34a !important; border-color: #86efac !important; }
+  .article-pool .category-business { background: #fce7f3 !important; color: #be185d !important; border-color: #f9a8d4 !important; }
+  .article-pool .category-default { background: #f3f4f6 !important; color: #6b7280 !important; border-color: #d1d5db !important; }
+  
+  /* 状态徽章 - 增强样式 */
+  .article-pool .status-badge {
+    display: inline-block !important;
+    padding: 4px 10px !important;
+    border-radius: 16px !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  }
+  
+  .article-pool .status-pending { background: #dbeafe !important; color: #2563eb !important; border-color: #93c5fd !important; }
+  .article-pool .status-adopted { background: #dcfce7 !important; color: #16a34a !important; border-color: #86efac !important; }
+  .article-pool .status-archived { background: #f3f4f6 !important; color: #6b7280 !important; border-color: #d1d5db !important; }
+  .article-pool .status-ignored { background: #fee2e2 !important; color: #dc2626 !important; border-color: #fca5a5 !important; }
+  .article-pool .status-draft { background: #fef3c7 !important; color: #d97706 !important; border-color: #fcd34d !important; }
+  
+  /* 摘要卡片 - 增强样式 */
+  .article-pool .summary-card {
+    transition: all 0.3s ease !important;
+    border-left: 5px solid transparent !important;
+    border-radius: 12px !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+    overflow: hidden !important;
+    background: #ffffff !important;
+  }
+  
+  .article-pool .summary-card:hover {
+    border-left-color: #3b82f6 !important;
+    transform: translateX(4px) translateY(-2px) !important;
+    box-shadow: 0 8px 24px rgba(59, 130, 246, 0.15) !important;
+  }
+  
+  /* 已处理的卡片样式 */
+  .summary-card.processed-adopt {
+    border-left-color: #10b981;
+    background-color: #f0fdf4;
+  }
+  
+  .summary-card.processed-archive {
+    border-left-color: #6b7280;
+    background-color: #f9fafb;
+  }
+  
+  .summary-card.processed-ignore {
+    border-left-color: #ef4444;
+    background-color: #fef2f2;
+  }
+  
+  /* 操作按钮 - 增强样式 */
+  .article-pool .action-buttons .uk-button {
+    min-width: 38px !important;
+    height: 38px !important;
+    border-radius: 8px !important;
+    font-size: 16px !important;
+    transition: all 0.2s ease !important;
+    border: 2px solid transparent !important;
+    font-weight: 600 !important;
+  }
+  
+  .article-pool .action-buttons .uk-button:hover {
+    transform: scale(1.15) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+  }
+  
+  .article-pool .action-buttons .uk-button-success {
+    background: linear-gradient(135deg, #10b981, #059669) !important;
+    border-color: #059669 !important;
+  }
+  
+  .article-pool .action-buttons .uk-button-danger {
+    background: linear-gradient(135deg, #ef4444, #dc2626) !important;
+    border-color: #dc2626 !important;
+  }
+  
+  .article-pool .action-buttons .uk-button-default {
+    background: linear-gradient(135deg, #f3f4f6, #e5e7eb) !important;
+    color: #374151 !important;
+    border-color: #d1d5db !important;
+  }
+  
+  /* 详情区域 */
+  .article-details {
+    border-top: 1px solid #e5e7eb;
+    animation: slideDown 0.3s ease;
+  }
+  
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      max-height: 0;
+    }
+    to {
+      opacity: 1;
+      max-height: 300px;
+    }
+  }
+  
+  
+  @keyframes slideIn {
+    from {
+      opacity: 0;
+      transform: translateY(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  /* 筛选栏 - 窄窄的一横溜 */
+  .filter-bar {
+    border-radius: 8px !important;
+    border: 1px solid #e5e7eb !important;
+    background: #f9fafb !important;
+  }
+  
+  .filter-bar .uk-search-input {
+    width: 200px !important;
+    height: 32px !important;
+  }
+  
+  .filter-bar .uk-select {
+    height: 32px !important;
+    min-width: 120px !important;
+    font-size: 13px !important;
+  }
+  
+  /* 文章池容器 */
+  .article-pool {
+    max-width: none;
+  }
+  
+  /* 响应式调整 */
+  @media (max-width: 768px) {
+    .score-badge {
+      width: 48px;
+      height: 48px;
+    }
+    
+    .score-number {
+      font-size: 18px;
+    }
+    
+    .meta-line {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 4px;
+    }
+    
+    .action-buttons {
+      flex-direction: column;
+      gap: 4px;
+    }
+  }
+  
+  /* 加载动画优化 */
+  .details-loading {
+    min-height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+</style>

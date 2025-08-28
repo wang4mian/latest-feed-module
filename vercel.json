@@ -1,4 +1,7 @@
 {
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "framework": "astro",
   "crons": [
     {
       "path": "/api/rss-cron",

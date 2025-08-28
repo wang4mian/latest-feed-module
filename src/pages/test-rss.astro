@@ -1,0 +1,156 @@
+---
+// 测试页面 - 手动触发 RSS 抓取
+---
+
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RSS 抓取测试</title>
+    <style>
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; 
+            max-width: 800px; 
+            margin: 50px auto; 
+            padding: 20px; 
+            background: #f8f9fa;
+        }
+        .test-card { 
+            background: white; 
+            border-radius: 8px; 
+            padding: 30px; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1); 
+            margin: 20px 0;
+        }
+        .button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        .button:hover { background: #0056b3; }
+        .button:disabled { background: #6c757d; cursor: not-allowed; }
+        .result {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 15px 0;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .success { border-color: #28a745; background-color: #d4edda; }
+        .error { border-color: #dc3545; background-color: #f8d7da; }
+        .loading { border-color: #ffc107; background-color: #fff3cd; }
+    </style>
+</head>
+<body>
+    <div class="test-card">
+        <h1>🔄 RSS 抓取测试</h1>
+        <p>手动触发 RSS 源抓取和处理任务。</p>
+
+        <div>
+            <button class="button" onclick="triggerRSS()">🚀 启动 RSS 抓取</button>
+            <button class="button" onclick="triggerJobs()">⚙️ 处理任务队列</button>
+            <button class="button" onclick="checkStatus()">📊 查看状态</button>
+        </div>
+
+        <div id="result" class="result" style="display: none;"></div>
+
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #dee2e6;">
+            <h3>说明：</h3>
+            <ul>
+                <li><strong>RSS 抓取</strong>：从配置的 RSS 源获取最新文章</li>
+                <li><strong>任务队列</strong>：处理内容抓取、AI 分析和实体抽取</li>
+                <li><strong>查看状态</strong>：检查系统当前状态</li>
+            </ul>
+            
+            <p><a href="/sources">📝 管理 RSS 源</a> | <a href="/pool">📰 查看文章池</a> | <a href="/">🏠 返回主页</a></p>
+        </div>
+    </div>
+
+    <script>
+        function showResult(message, type = 'info') {
+            const result = document.getElementById('result');
+            result.style.display = 'block';
+            result.className = `result ${type}`;
+            result.textContent = message;
+        }
+
+        async function triggerRSS() {
+            showResult('正在触发 RSS 抓取...', 'loading');
+            
+            try {
+                const response = await fetch('/api/rss-cron', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': 'Bearer 123456'  // 使用 CRON_SECRET
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    showResult(`RSS 抓取成功！\n${JSON.stringify(data, null, 2)}`, 'success');
+                } else {
+                    const errorText = await response.text();
+                    showResult(`RSS 抓取失败 (${response.status})：\n${errorText}`, 'error');
+                }
+            } catch (error) {
+                showResult(`请求失败：${error.message}`, 'error');
+            }
+        }
+
+        async function triggerJobs() {
+            showResult('正在处理任务队列...', 'loading');
+            
+            try {
+                const response = await fetch('/api/job-processor-cron', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': 'Bearer 123456'  // 使用 CRON_SECRET
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    showResult(`任务处理成功！\n${JSON.stringify(data, null, 2)}`, 'success');
+                } else {
+                    const errorText = await response.text();
+                    showResult(`任务处理失败 (${response.status})：\n${errorText}`, 'error');
+                }
+            } catch (error) {
+                showResult(`请求失败：${error.message}`, 'error');
+            }
+        }
+
+        async function checkStatus() {
+            showResult('正在检查系统状态...', 'loading');
+            
+            try {
+                // 检查 RSS 源数量
+                const sourcesResponse = await fetch('/api/sources');
+                const sources = await sourcesResponse.json();
+                
+                // 检查文章数量 
+                const articlesResponse = await fetch('/api/articles');
+                const articles = await articlesResponse.json();
+                
+                const statusInfo = [
+                    `RSS 源数量: ${sources.length || 0}`,
+                    `文章总数: ${articles.count || 0}`,
+                    `系统时间: ${new Date().toISOString()}`,
+                    `页面状态: 正常运行`
+                ].join('\n');
+                
+                showResult(statusInfo, 'success');
+            } catch (error) {
+                showResult(`状态检查失败：${error.message}`, 'error');
+            }
+        }
+    </script>
+</body>
+</html>

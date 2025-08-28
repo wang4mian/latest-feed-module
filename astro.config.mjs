@@ -13,7 +13,8 @@ export default defineConfig({
   output: 'server',
   adapter: vercel({
     webAnalytics: { enabled: true },
-    functionPerRoute: false
+    functionPerRoute: false,
+    includeFiles: []
   }),
   server: {
     port: 3000,

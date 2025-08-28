@@ -1,0 +1,71 @@
+---
+// 健康检查页面 - 不依赖任何外部服务
+---
+
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>系统健康检查</title>
+    <style>
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; 
+            max-width: 800px; 
+            margin: 50px auto; 
+            padding: 20px; 
+            background: #f8f9fa;
+        }
+        .health-card { 
+            background: white; 
+            border-radius: 8px; 
+            padding: 30px; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1); 
+            margin: 20px 0;
+        }
+        .status-ok { color: #28a745; }
+        .env-check { 
+            background: #e9ecef; 
+            padding: 15px; 
+            border-radius: 5px; 
+            margin: 10px 0; 
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="health-card">
+        <h1>🚀 制造业情报系统 - 健康检查</h1>
+        <div class="status-ok">
+            ✅ Astro 服务器正常运行<br>
+            ✅ Vercel 部署成功<br>
+            ✅ 基础页面渲染正常
+        </div>
+
+        <h2>环境信息</h2>
+        <div class="env-check">
+            <strong>运行环境:</strong> {import.meta.env.MODE}<br>
+            <strong>Astro 版本:</strong> Astro v5+<br>
+            <strong>部署平台:</strong> Vercel<br>
+            <strong>时间戳:</strong> {new Date().toISOString()}
+        </div>
+
+        <h2>环境变量状态</h2>
+        <div class="env-check">
+            <strong>PUBLIC_SUPABASE_URL:</strong> {import.meta.env.PUBLIC_SUPABASE_URL ? '✅ 已配置' : '❌ 未配置'}<br>
+            <strong>PUBLIC_SUPABASE_ANON_KEY:</strong> {import.meta.env.PUBLIC_SUPABASE_ANON_KEY ? '✅ 已配置' : '❌ 未配置'}
+        </div>
+
+        <h2>快速导航</h2>
+        <p>
+            <a href="/" style="margin-right: 15px;">📊 主页</a>
+            <a href="/pool" style="margin-right: 15px;">📰 文章池</a>
+            <a href="/sources" style="margin-right: 15px;">🔗 RSS源</a>
+            <a href="/editor" style="margin-right: 15px;">✏️ 编辑台</a>
+        </p>
+
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #dee2e6; color: #6c757d;">
+            <small>如果主页出现 500 错误，通常是数据库连接或环境变量配置问题</small>
+        </div>
+    </div>
+</body>
+</html>

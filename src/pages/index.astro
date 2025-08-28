@@ -2,8 +2,20 @@
 import Layout from '@/layouts/Layout.astro';
 import { getArticleStats } from '@/lib/supabase';
 
-// 获取统计数据
-const { statusStats, categoryStats, recentCount } = await getArticleStats();
+// 获取统计数据，使用 try-catch 处理可能的错误
+let statusStats = [];
+let categoryStats = [];
+let recentCount = 0;
+
+try {
+  const stats = await getArticleStats();
+  statusStats = stats.statusStats;
+  categoryStats = stats.categoryStats;
+  recentCount = stats.recentCount;
+} catch (error) {
+  console.error('Failed to load article stats:', error);
+  // 使用默认值继续渲染页面
+}
 
 // 处理状态统计
 const statusCounts = statusStats.reduce((acc: Record<string, number>, item: any) => {

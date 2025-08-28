@@ -215,23 +215,48 @@ export const updateArticleStatus = async (id: string, status: Article['overall_s
 }
 
 export const getArticleStats = async () => {
-  const { data: statusStats } = await supabase
-    .from('articles')
-    .select('overall_status')
-  
-  const { data: categoryStats } = await supabase
-    .from('articles') 
-    .select('ai_category')
-    .not('ai_category', 'is', null)
-  
-  const { data: recentArticles } = await supabase
-    .from('articles')
-    .select('created_at')
-    .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
-  
-  return {
-    statusStats: statusStats || [],
-    categoryStats: categoryStats || [],
-    recentCount: recentArticles?.length || 0
+  try {
+    const { data: statusStats, error: statusError } = await supabase
+      .from('articles')
+      .select('overall_status')
+    
+    if (statusError) {
+      console.error('Status stats query error:', statusError)
+      throw statusError
+    }
+    
+    const { data: categoryStats, error: categoryError } = await supabase
+      .from('articles') 
+      .select('ai_category')
+      .not('ai_category', 'is', 'null')
+    
+    if (categoryError) {
+      console.error('Category stats query error:', categoryError)
+      throw categoryError
+    }
+    
+    const { data: recentArticles, error: recentError } = await supabase
+      .from('articles')
+      .select('created_at')
+      .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+    
+    if (recentError) {
+      console.error('Recent articles query error:', recentError)
+      throw recentError
+    }
+    
+    return {
+      statusStats: statusStats || [],
+      categoryStats: categoryStats || [],
+      recentCount: recentArticles?.length || 0
+    }
+  } catch (error) {
+    console.error('Error in getArticleStats:', error)
+    // 返回默认值而不是抛出错误，避免页面崩溃
+    return {
+      statusStats: [],
+      categoryStats: [],
+      recentCount: 0
+    }
   }
 }

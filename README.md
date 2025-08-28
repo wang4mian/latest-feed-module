@@ -60,11 +60,11 @@ LF/
 
 ## 🎯 核心功能
 
-### 📥 智能信息采集
+### 📥 智能信息采集  
 - **RSS源管理** - 43+个制造业专业源，支持CRUD操作
 - **自动抓取系统** - 三层防重复检测（GUID → URL → 标题哈希）
-- **全文内容提取** - Crawl4AI智能提取正文、图片、元数据
-- **定时任务** - Vercel Cron每2小时自动执行
+- **全文内容提取** - Crawl4AI智能提取正文、图片、元数据  
+- **定时任务** - Supabase pg_cron每2小时自动执行
 
 ### 🤖 AI智能分析
 - **内容评分** - Gemini AI对文章相关性进行0-100分评分
@@ -102,26 +102,35 @@ LF/
 ## 🔧 技术架构
 
 ### 核心技术栈
-- **前端框架**: Astro + Franken UI + UIKit
-- **后端服务**: Supabase (BaaS) + Astro API Routes
+- **前端框架**: Astro v5 + Franken UI + UIKit
+- **后端服务**: Supabase Edge Functions + PostgreSQL
 - **数据库**: Supabase PostgreSQL
 - **AI服务**: Crawl4AI + Gemini AI
 - **编辑器**: Doocs MD (开源微信编辑器)
-- **定时任务**: Vercel Cron Jobs
-- **部署平台**: Vercel
+- **定时任务**: Supabase pg_cron
+- **部署平台**: Vercel (前端) + Supabase (后端)
 
-### 架构模式
+### 最终架构模式 ✅
 ```
-用户界面 (Astro + Franken UI)
+用户浏览器
     ↓
-API层 (Astro API Routes)
+Vercel (前端托管 - Astro应用)
     ↓
-业务逻辑 (Supabase Edge Functions)
+Supabase Edge Functions (后端业务逻辑)
     ↓
-数据存储 (Supabase PostgreSQL)
+Supabase PostgreSQL (数据存储)
     ↓
-外部服务 (Crawl4AI + Gemini AI)
+外部AI服务 (Crawl4AI + Gemini AI)
+
+自动化流程:
+Supabase pg_cron → Supabase Edge Functions → 数据库更新
 ```
+
+### 🎯 架构优势
+- **职责分离清晰**: Vercel专注前端，Supabase专注后端
+- **性能最优**: 减少跨服务调用，降低延迟
+- **维护简单**: 统一的后端生态，减少配置复杂性
+- **成本效率**: 避免重复的服务器资源消耗
 
 ## 📊 数据库架构
 
@@ -195,11 +204,21 @@ CRON_SECRET=your-secure-secret
 
 ### 📝 基本工作流程
 1. **RSS源管理** - 在`/sources`页面添加和管理RSS源
-2. **自动抓取** - 系统每2小时自动抓取新文章
+2. **自动抓取** - Supabase pg_cron每2小时自动触发Edge Functions抓取新文章
 3. **AI智能分析** - Gemini AI自动评分和分类文章
 4. **文章筛选** - 在`/pool`页面筛选高价值文章
 5. **内容编辑** - 在`/editor`页面使用Doocs MD编辑器深度编辑
 6. **发布输出** - 输出适配微信公众号等平台的格式
+
+### 🔧 手动触发RSS抓取
+如需手动启动RSS抓取（测试或紧急更新）：
+```bash
+# 直接调用Supabase Edge Function
+curl -X POST 'https://msvgeriacsaaakmxvqye.supabase.co/functions/v1/rss-fetch' \
+  -H 'Authorization: Bearer YOUR_SERVICE_ROLE_KEY' \
+  -H 'Content-Type: application/json' \
+  -d '{"test_mode": false}'
+```
 
 ### 🎯 核心操作
 - **筛选文章**: 使用AI评分、分类、来源等多维度筛选
@@ -209,8 +228,15 @@ CRON_SECRET=your-secure-secret
 
 ### 📊 系统监控
 - 查看RSS源连接状态和成功率
-- 监控文章处理流程和AI分析结果
+- 监控文章处理流程和AI分析结果  
 - 追踪内容编辑和发布效果
+- 健康检查页面：`/health`
+
+### 🛠️ 系统架构决策记录
+**为什么最终选择纯Supabase后端？**
+- ❌ 初始方案：Vercel Cron → Vercel API → Supabase Edge Functions（过度复杂）
+- ✅ 最终方案：Supabase pg_cron → Supabase Edge Functions（简洁高效）
+- **优势**：减少网络调用、降低延迟、统一生态、更好的错误处理
 
 ## 🏆 系统优势
 
@@ -236,22 +262,41 @@ CRON_SECRET=your-secure-secret
 
 ## 📈 当前状态
 
-**🎉 制造业情报系统 - ✅ 完全可用！**
+**🎉 制造业情报系统 - ✅ 生产就绪！**
 
-### 🌟 系统特色
-- **完整工作流**: 从信息采集到内容发布的完整解决方案
-- **专业编辑器**: 集成业界领先的Doocs MD编辑器
-- **AI智能助手**: Gemini AI提供专业的内容分析
-- **现代化界面**: 基于最新Web技术的响应式设计
+### 🌟 部署状态
+- ✅ **前端应用**: 已部署到 Vercel，响应正常
+- ✅ **后端服务**: Supabase Edge Functions 运行正常
+- ✅ **数据库**: PostgreSQL 表结构完整，数据正常
+- ✅ **自动化**: RSS 抓取已成功运行，文章数据已获取
+- ✅ **环境变量**: 所有必需配置已正确设置
 
-### 🎯 生产就绪
-系统已通过全面测试验证，所有核心功能正常运行，可直接投入生产使用。
+### 🎯 已验证功能
+- ✅ **RSS 源管理**: CRUD 操作全部正常
+- ✅ **文章池筛选**: AI 评分、多维度过滤正常
+- ✅ **编辑工作台**: Doocs MD 集成完整
+- ✅ **自动抓取**: Edge Functions 成功抓取并存储文章
+- ✅ **数据库操作**: 三层防重复、任务队列正常
 
-### 🔄 持续优化
-根据用户反馈和使用数据，系统将持续优化和功能扩展。
+### 🔄 自动化流程
+```
+Supabase pg_cron (每2小时)
+    ↓
+rss-fetch Edge Function (RSS抓取)
+    ↓
+job-processor Edge Function (AI分析)
+    ↓
+数据库更新 (文章、实体、统计)
+```
+
+### 🚀 生产环境信息
+- **前端地址**: https://latest-feed-module.vercel.app
+- **健康检查**: https://latest-feed-module.vercel.app/health
+- **技术栈**: Astro v5 + Supabase + Vercel
+- **架构模式**: 前后端分离，纯 Supabase 后端
 
 ---
 
-**项目状态**: 🟢 生产就绪  
+**项目状态**: 🟢 生产就绪，已有数据  
 **最后更新**: 2025-08-28  
 **版本**: v1.0.0

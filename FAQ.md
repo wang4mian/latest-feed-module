@@ -86,6 +86,46 @@ npm run build
 
 ---
 
+## ❌ 部署后显示 HTTP ERROR 500
+
+**问题描述：**
+Vercel 部署成功，但访问主页显示 "HTTP ERROR 500" 内部服务器错误。
+
+**根本原因：**
+Supabase 环境变量未在 Vercel 项目中配置，导致数据库连接失败。
+
+**诊断方法：**
+1. 访问 `/health` 页面查看环境变量状态
+2. 如果显示 "❌ 未配置"，说明需要在 Vercel 中配置环境变量
+
+**解决方案：**
+1. **进入 Vercel 项目设置**：
+   - 访问 https://vercel.com/dashboard
+   - 点击项目名称 → Settings → Environment Variables
+
+2. **添加必需的环境变量**：
+   ```
+   PUBLIC_SUPABASE_URL=https://your-project-id.supabase.co
+   PUBLIC_SUPABASE_ANON_KEY=eyJ0eXAiOiJKV1QiLCJhbGc...
+   ```
+
+3. **可选环境变量**（用于高级功能）：
+   ```
+   SUPABASE_SERVICE_ROLE_KEY=eyJ0eXAiOiJKV1QiLCJhbGc...
+   GEMINI_API_KEY=AIzaSyC...
+   CRON_SECRET=123456
+   ```
+
+4. **重新部署**：
+   - 在 Deployments 页面找到最新部署
+   - 点击三个点菜单 → Redeploy
+
+**验证修复：**
+- 访问 `/health` 页面应该显示 "✅ 已配置"
+- 主页应该正常显示，不再出现 500 错误
+
+---
+
 ## 🔧 开发环境问题
 
 ### Q2: RSS 源 ID 无法修改

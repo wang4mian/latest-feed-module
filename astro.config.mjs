@@ -12,7 +12,9 @@ export default defineConfig({
   ],
   output: 'server',
   adapter: vercel({
-    webAnalytics: { enabled: true }
+    webAnalytics: { enabled: true },
+    functionPerRoute: false,
+    runtime: "nodejs20.x"
   }),
   server: {
     port: 3000,

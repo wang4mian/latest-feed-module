@@ -1,4 +1,6 @@
-export const GET = async ({ request }: { request: Request }) => {
+import type { APIRoute } from 'astro'
+
+export const GET: APIRoute = async ({ request }) => {
   // 验证 Authorization header
   const authHeader = request.headers.get('authorization')
   const cronSecret = import.meta.env.CRON_SECRET || '123456'

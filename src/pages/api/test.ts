@@ -1,4 +1,6 @@
-export const GET = async () => {
+import type { APIRoute } from 'astro'
+
+export const GET: APIRoute = async () => {
   return new Response(JSON.stringify({
     message: "API 路由工作正常",
     timestamp: new Date().toISOString(),

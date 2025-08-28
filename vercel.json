@@ -1,12 +1,1 @@
-{
-  "crons": [
-    {
-      "path": "/api/rss-cron",
-      "schedule": "0 */2 * * *"
-    },
-    {
-      "path": "/api/job-processor-cron",
-      "schedule": "*/15 * * * *"
-    }
-  ]
-}
+{}

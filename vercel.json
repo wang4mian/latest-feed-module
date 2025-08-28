@@ -1,12 +1,4 @@
 {
-  "functions": {
-    "api/rss-cron.js": {
-      "runtime": "nodejs20.x"
-    },
-    "api/job-processor-cron.js": {
-      "runtime": "nodejs20.x"
-    }
-  },
   "crons": [
     {
       "path": "/api/rss-cron",

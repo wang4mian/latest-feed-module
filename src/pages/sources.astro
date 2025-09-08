@@ -1,6 +1,6 @@
 ---
-import Layout from '@/layouts/Layout.astro';
-import { supabase } from '@/lib/supabase';
+import DashboardLayout from '../layouts/DashboardLayout.astro';
+import { supabase } from '../lib/supabase';
 
 // 获取URL参数
 const url = Astro.url;
@@ -52,328 +52,417 @@ const activeSources = sources?.filter(s => s.is_active).length || 0;
 const errorSources = sources?.filter(s => s.error_count > 0).length || 0;
 ---
 
-<Layout title="RSS源管理 - 制造业情报系统">
-  <div class="uk-section uk-section-small">
-    <div class="uk-container uk-container-expand">
-      <!-- 页面标题 -->
-      <div class="uk-flex uk-flex-between uk-flex-middle uk-margin-medium-bottom">
-        <div>
-          <h1 class="uk-heading-medium uk-margin-remove-bottom">
-            <span uk-icon="rss" class="uk-margin-small-right"></span>
-            RSS源管理
-          </h1>
-          <p class="uk-text-meta uk-margin-remove-top">
-            管理和监控所有情报来源
-          </p>
-        </div>
+<DashboardLayout title="RSS源管理 - KUATO">
+  <!-- Page Header -->
+  <div class="mb-6">
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="text-3xl font-bold text-gray-900">RSS源管理</h1>
+        <p class="mt-1 text-sm text-gray-500">
+          管理和监控所有情报来源
+        </p>
+      </div>
+      
+      <div class="flex items-center space-x-3">
+        <!-- Add Source Button -->
+        <button class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" 
+                onclick="showAddSourceModal()">
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+          </svg>
+          添加RSS源
+        </button>
         
-        <div class="uk-flex uk-flex-middle">
-          <!-- 添加新源 -->
-          <button class="uk-button uk-button-primary uk-margin-small-right" 
-                  onclick="UIkit.modal('#add-source-modal').show()">
-            <span uk-icon="plus"></span> 添加RSS源
+        <!-- Bulk Operations -->
+        <div class="flex items-center space-x-2">
+          <button class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" id="bulk-enable-btn">
+            <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+            </svg>
+            批量启用
           </button>
-          
-          <!-- 批量操作 -->
-          <div class="uk-button-group uk-margin-small-right">
-            <button class="uk-button uk-button-default" id="bulk-enable-btn">
-              <span uk-icon="check"></span> 批量启用
-            </button>
-            <button class="uk-button uk-button-default" id="bulk-disable-btn">
-              <span uk-icon="ban"></span> 批量禁用
-            </button>
-          </div>
-          
-          <!-- 测试连接 -->
-          <button class="uk-button uk-button-secondary" id="test-all-btn">
-            <span uk-icon="refresh"></span> 测试全部
+          <button class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" id="bulk-disable-btn">
+            <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM4 10a6 6 0 1012 0A6 6 0 004 10z" clip-rule="evenodd" />
+            </svg>
+            批量禁用
           </button>
         </div>
-      </div>
-
-      <!-- 统计卡片 -->
-      <div class="uk-grid-match uk-child-width-1-4@m uk-child-width-1-2@s uk-margin-bottom" uk-grid>
-        <div>
-          <div class="uk-card uk-card-default uk-card-body uk-text-center">
-            <span uk-icon="icon: database; ratio: 2" class="uk-text-primary"></span>
-            <h3 class="uk-card-title uk-margin-small-top">{totalSources}</h3>
-            <p class="uk-text-muted">总RSS源</p>
-          </div>
-        </div>
         
-        <div>
-          <div class="uk-card uk-card-default uk-card-body uk-text-center">
-            <span uk-icon="icon: check-circle; ratio: 2" class="uk-text-success"></span>
-            <h3 class="uk-card-title uk-margin-small-top">{activeSources}</h3>
-            <p class="uk-text-muted">活跃源</p>
-          </div>
-        </div>
-        
-        <div>
-          <div class="uk-card uk-card-default uk-card-body uk-text-center">
-            <span uk-icon="icon: warning; ratio: 2" class="uk-text-warning"></span>
-            <h3 class="uk-card-title uk-margin-small-top">{errorSources}</h3>
-            <p class="uk-text-muted">异常源</p>
-          </div>
-        </div>
-        
-        <div>
-          <div class="uk-card uk-card-default uk-card-body uk-text-center">
-            <span uk-icon="icon: clock; ratio: 2" class="uk-text-muted"></span>
-            <h3 class="uk-card-title uk-margin-small-top">
-              {totalSources > 0 ? Math.round((activeSources / totalSources) * 100) : 0}%
-            </h3>
-            <p class="uk-text-muted">活跃率</p>
-          </div>
-        </div>
+        <!-- Test All -->
+        <button class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" id="test-all-btn">
+          <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          测试全部
+        </button>
       </div>
+    </div>
+  </div>
 
-      <!-- 筛选和搜索 -->
-      <div class="uk-card uk-card-default uk-margin-bottom">
-        <div class="uk-card-body">
-          <div class="uk-grid-small uk-flex-middle" uk-grid>
-            <div class="uk-width-auto">
-              <span class="uk-text-meta">筛选:</span>
-            </div>
-            
-            <div class="uk-width-auto">
-              <div class="uk-button-group">
-                <a href="/sources" class={`uk-button uk-button-small ${!status ? 'uk-button-primary' : 'uk-button-default'}`}>
-                  全部
-                </a>
-                <a href="/sources?status=active" class={`uk-button uk-button-small ${status === 'active' ? 'uk-button-primary' : 'uk-button-default'}`}>
-                  活跃
-                </a>
-                <a href="/sources?status=inactive" class={`uk-button uk-button-small ${status === 'inactive' ? 'uk-button-primary' : 'uk-button-default'}`}>
-                  禁用
-                </a>
-                <a href="/sources?status=error" class={`uk-button uk-button-small ${status === 'error' ? 'uk-button-primary' : 'uk-button-default'}`}>
-                  异常
-                </a>
-              </div>
-            </div>
-            
-            <div class="uk-width-expand">
-              <form method="get" class="uk-search uk-search-default uk-width-1-1">
-                <input name="search" class="uk-search-input" type="search" 
-                       placeholder="搜索RSS源名称、URL或分类..." 
-                       value={search}>
-                <span uk-search-icon></span>
-                {status && <input type="hidden" name="status" value={status}>}
-              </form>
-            </div>
-          </div>
-        </div>
+  <!-- Statistics Cards -->
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+    <div class="dashboard-card">
+      <div class="dashboard-card-body text-center">
+        <svg class="w-8 h-8 mx-auto text-blue-600 mb-2" fill="currentColor" viewBox="0 0 20 20">
+          <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
+        </svg>
+        <div class="text-2xl font-bold text-gray-900">{totalSources}</div>
+        <div class="text-sm text-gray-500">总RSS源</div>
       </div>
-
-      <!-- RSS源列表 -->
-      {hasSources ? (
-        <div class="uk-card uk-card-default">
-          <div class="uk-card-body uk-padding-remove">
-            <div class="uk-overflow-auto">
-              <table class="uk-table uk-table-hover uk-table-divider">
-                <thead>
-                  <tr>
-                    <th class="uk-table-shrink">
-                      <input class="uk-checkbox" type="checkbox" id="select-all">
-                    </th>
-                    <th>名称</th>
-                    <th>分类</th>
-                    <th>状态</th>
-                    <th>成功率</th>
-                    <th>最后抓取</th>
-                    <th>操作</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sources.map((source: any) => {
-                    const successRate = source.fetch_count > 0 
-                      ? Math.round((source.success_count / source.fetch_count) * 100) 
-                      : 0;
-                    
-                    const lastFetchTime = source.last_fetch_at 
-                      ? new Date(source.last_fetch_at).toLocaleString('zh-CN')
-                      : '从未';
-                    
-                    return (
-                      <tr>
-                        <td>
-                          <input class="uk-checkbox source-checkbox" type="checkbox" 
-                                 value={source.id}>
-                        </td>
-                        
-                        <td>
-                          <div>
-                            <div class="uk-text-bold">{source.name}</div>
-                            <div class="uk-text-small uk-text-muted uk-text-truncate" 
-                                 style="max-width: 200px;" uk-tooltip={source.url}>
-                              {source.url}
-                            </div>
-                          </div>
-                        </td>
-                        
-                        <td>
-                          <span class="uk-badge uk-badge-secondary">
-                            {source.vertical_name || '未分类'}
-                          </span>
-                          <div class="uk-text-small uk-text-muted">
-                            {source.topic_for_ai}
-                          </div>
-                        </td>
-                        
-                        <td>
-                          {source.is_active ? (
-                            source.error_count > 0 ? (
-                              <span class="uk-text-warning">
-                                <span uk-icon="warning" class="uk-margin-small-right"></span>
-                                异常 ({source.error_count})
-                              </span>
-                            ) : (
-                              <span class="uk-text-success">
-                                <span uk-icon="check" class="uk-margin-small-right"></span>
-                                活跃
-                              </span>
-                            )
-                          ) : (
-                            <span class="uk-text-muted">
-                              <span uk-icon="ban" class="uk-margin-small-right"></span>
-                              禁用
-                            </span>
-                          )}
-                        </td>
-                        
-                        <td>
-                          <div class="uk-text-bold uk-text-{successRate >= 80 ? 'success' : successRate >= 60 ? 'warning' : 'danger'}">
-                            {successRate}%
-                          </div>
-                          <div class="uk-text-small uk-text-muted">
-                            {source.success_count}/{source.fetch_count}
-                          </div>
-                        </td>
-                        
-                        <td>
-                          <div class="uk-text-small">{lastFetchTime}</div>
-                          {source.last_error && (
-                            <div class="uk-text-small uk-text-danger uk-text-truncate" 
-                                 style="max-width: 150px;" 
-                                 uk-tooltip={source.last_error}>
-                              {source.last_error}
-                            </div>
-                          )}
-                        </td>
-                        
-                        <td>
-                          <div class="uk-button-group uk-button-group-small">
-                            <button class="uk-button uk-button-default uk-button-small test-source-btn" 
-                                    data-source-id={source.id} uk-tooltip="测试连接">
-                              <span uk-icon="refresh"></span>
-                            </button>
-                            
-                            <button class="uk-button uk-button-default uk-button-small edit-source-btn" 
-                                    data-source-id={source.id} uk-tooltip="编辑">
-                              <span uk-icon="pencil"></span>
-                            </button>
-                            
-                            <button class="uk-button uk-button-{source.is_active ? 'danger' : 'success'} uk-button-small toggle-source-btn" 
-                                    data-source-id={source.id} 
-                                    data-current-status={source.is_active}
-                                    uk-tooltip={source.is_active ? '禁用' : '启用'}>
-                              <span uk-icon={source.is_active ? 'ban' : 'check'}></span>
-                            </button>
-                            
-                            <button class="uk-button uk-button-danger uk-button-small delete-source-btn" 
-                                    data-source-id={source.id} uk-tooltip="删除">
-                              <span uk-icon="trash"></span>
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
+    </div>
+    
+    <div class="dashboard-card">
+      <div class="dashboard-card-body text-center">
+        <svg class="w-8 h-8 mx-auto text-green-600 mb-2" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+        </svg>
+        <div class="text-2xl font-bold text-gray-900">{activeSources}</div>
+        <div class="text-sm text-gray-500">活跃源</div>
+      </div>
+    </div>
+    
+    <div class="dashboard-card">
+      <div class="dashboard-card-body text-center">
+        <svg class="w-8 h-8 mx-auto text-yellow-600 mb-2" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+        </svg>
+        <div class="text-2xl font-bold text-gray-900">{errorSources}</div>
+        <div class="text-sm text-gray-500">异常源</div>
+      </div>
+    </div>
+    
+    <div class="dashboard-card">
+      <div class="dashboard-card-body text-center">
+        <svg class="w-8 h-8 mx-auto text-purple-600 mb-2" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd" />
+        </svg>
+        <div class="text-2xl font-bold text-gray-900">
+          {totalSources > 0 ? Math.round((activeSources / totalSources) * 100) : 0}%
         </div>
-      ) : (
-        <div class="uk-text-center uk-padding-large">
-          <span uk-icon="icon: rss; ratio: 3" class="uk-text-muted"></span>
-          <h3 class="uk-text-muted uk-margin-top">暂无RSS源</h3>
-          <p class="uk-text-muted">
-            {status || search 
-              ? '当前筛选条件下没有找到RSS源，请尝试调整筛选条件。' 
-              : '还没有配置RSS源，请添加一些情报来源。'}
-          </p>
-          {(status || search) ? (
-            <a href="/sources" class="uk-button uk-button-primary uk-margin-top">
-              <span uk-icon="refresh"></span> 查看全部RSS源
+        <div class="text-sm text-gray-500">活跃率</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters and Search -->
+  <div class="dashboard-card mb-6">
+    <div class="dashboard-card-body">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+        <!-- Filter Buttons -->
+        <div class="flex items-center space-x-2">
+          <span class="text-sm text-gray-500">筛选:</span>
+          <div class="flex space-x-1">
+            <a href="/sources" class={`inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md ${!status ? 'bg-blue-100 text-blue-800' : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'}`}>
+              全部
             </a>
-          ) : (
-            <button class="uk-button uk-button-primary uk-margin-top" 
-                    onclick="UIkit.modal('#add-source-modal').show()">
-              <span uk-icon="plus"></span> 添加第一个RSS源
-            </button>
-          )}
+            <a href="/sources?status=active" class={`inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md ${status === 'active' ? 'bg-blue-100 text-blue-800' : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'}`}>
+              活跃
+            </a>
+            <a href="/sources?status=inactive" class={`inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md ${status === 'inactive' ? 'bg-blue-100 text-blue-800' : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'}`}>
+              禁用
+            </a>
+            <a href="/sources?status=error" class={`inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md ${status === 'error' ? 'bg-blue-100 text-blue-800' : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'}`}>
+              异常
+            </a>
+          </div>
         </div>
-      )}
+        
+        <!-- Search -->
+        <div class="flex-1 max-w-md">
+          <form method="get" class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <svg class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            <input 
+              name="search" 
+              type="search" 
+              placeholder="搜索RSS源名称、URL或分类..." 
+              value={search}
+              class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+            />
+            {status && <input type="hidden" name="status" value={status} />}
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
 
-      <!-- 分页 -->
-      {totalPages > 1 && (
-        <div class="uk-flex uk-flex-center uk-margin-large-top">
-          <ul class="uk-pagination uk-flex-center" uk-margin>
+  <!-- RSS Sources List -->
+  {hasSources ? (
+    <div class="dashboard-card">
+      <div class="dashboard-card-body p-0">
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <input class="rounded border-gray-300 text-blue-600 focus:ring-blue-500" type="checkbox" id="select-all" />
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">名称</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">分类</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">状态</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">成功率</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">最后抓取</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+              {sources.map((source: any) => {
+                const successRate = source.fetch_count > 0 
+                  ? Math.round((source.success_count / source.fetch_count) * 100) 
+                  : 0;
+                
+                const lastFetchTime = source.last_fetch_at 
+                  ? new Date(source.last_fetch_at).toLocaleString('zh-CN')
+                  : '从未';
+                
+                return (
+                  <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <input class="rounded border-gray-300 text-blue-600 focus:ring-blue-500 source-checkbox" type="checkbox" 
+                             value={source.id} />
+                    </td>
+                    
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <div class="max-w-xs">
+                        <div class="text-sm font-medium text-gray-900 truncate">{source.name}</div>
+                        <div class="text-xs text-gray-500 truncate" title={source.url}>
+                          {source.url}
+                        </div>
+                      </div>
+                    </td>
+                    
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                        {source.vertical_name || '未分类'}
+                      </span>
+                      <div class="text-xs text-gray-500 mt-1">
+                        {source.topic_for_ai}
+                      </div>
+                    </td>
+                    
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      {source.is_active ? (
+                        source.error_count > 0 ? (
+                          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                            <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                              <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                            </svg>
+                            异常 ({source.error_count})
+                          </span>
+                        ) : (
+                          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                              <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                            </svg>
+                            活跃
+                          </span>
+                        )
+                      ) : (
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                          <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM4 10a6 6 0 1012 0A6 6 0 004 10z" clip-rule="evenodd" />
+                          </svg>
+                          禁用
+                        </span>
+                      )}
+                    </td>
+                    
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <div class={`text-sm font-medium ${
+                        successRate >= 80 ? 'text-green-600' : 
+                        successRate >= 60 ? 'text-yellow-600' : 
+                        'text-red-600'
+                      }`}>
+                        {successRate}%
+                      </div>
+                      <div class="text-xs text-gray-500">
+                        {source.success_count}/{source.fetch_count}
+                      </div>
+                    </td>
+                    
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <div class="text-sm text-gray-900">{lastFetchTime}</div>
+                      {source.last_error && (
+                        <div class="text-xs text-red-600 truncate max-w-32" title={source.last_error}>
+                          {source.last_error}
+                        </div>
+                      )}
+                    </td>
+                    
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div class="flex space-x-1">
+                        <button class="text-gray-400 hover:text-blue-600 test-source-btn" 
+                                data-source-id={source.id} title="测试连接">
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                          </svg>
+                        </button>
+                        
+                        <button class="text-gray-400 hover:text-blue-600 edit-source-btn" 
+                                data-source-id={source.id} title="编辑">
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                        </button>
+                        
+                        <button class={`text-gray-400 hover:${source.is_active ? 'text-red-600' : 'text-green-600'} toggle-source-btn`}
+                                data-source-id={source.id} 
+                                data-current-status={source.is_active}
+                                title={source.is_active ? '禁用' : '启用'}>
+                          {source.is_active ? (
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                              <path fill-rule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM4 10a6 6 0 1012 0A6 6 0 004 10z" clip-rule="evenodd" />
+                            </svg>
+                          ) : (
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                              <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                            </svg>
+                          )}
+                        </button>
+                        
+                        <button class="text-gray-400 hover:text-red-600 delete-source-btn" 
+                                data-source-id={source.id} title="删除">
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1-1H9a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  ) : (
+    <div class="dashboard-card">
+      <div class="dashboard-card-body text-center py-12">
+        <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+        </svg>
+        <h3 class="text-lg font-medium text-gray-900 mb-2">暂无RSS源</h3>
+        <p class="text-gray-500 mb-6">
+          {status || search 
+            ? '当前筛选条件下没有找到RSS源，请尝试调整筛选条件。' 
+            : '还没有配置RSS源，请添加一些情报来源。'}
+        </p>
+        {(status || search) ? (
+          <a href="/sources" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            查看全部RSS源
+          </a>
+        ) : (
+          <button class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700" 
+                  onclick="showAddSourceModal()">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+            添加第一个RSS源
+          </button>
+        )}
+      </div>
+    </div>
+  )}
+
+  <!-- Pagination -->
+  {totalPages > 1 && (
+    <div class="dashboard-card mt-6">
+      <div class="dashboard-card-body">
+        <div class="flex items-center justify-between">
+          <div class="text-sm text-gray-700">
+            显示 {(page - 1) * limit + 1} 到 {Math.min(page * limit, count || 0)} 条，共 {count || 0} 条
+          </div>
+          <div class="flex items-center space-x-2">
             {page > 1 && (
               <>
-                <li><a href={generatePageUrl(1)} uk-tooltip="首页"><span uk-icon="chevron-double-left"></span></a></li>
-                <li><a href={generatePageUrl(page - 1)} uk-tooltip="上一页"><span uk-icon="chevron-left"></span></a></li>
+                <a href={generatePageUrl(1)} class="inline-flex items-center px-2 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-500 bg-white hover:bg-gray-50" title="首页">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+                  </svg>
+                </a>
+                <a href={generatePageUrl(page - 1)} class="inline-flex items-center px-2 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-500 bg-white hover:bg-gray-50" title="上一页">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                  </svg>
+                </a>
               </>
             )}
             
             {Array.from({length: Math.min(5, totalPages)}, (_, i) => {
               const pageNum = Math.max(1, Math.min(totalPages - 4, page - 2)) + i;
               return (
-                <li class={pageNum === page ? 'uk-active' : ''}>
-                  <a href={generatePageUrl(pageNum)}>{pageNum}</a>
-                </li>
+                <a 
+                  href={generatePageUrl(pageNum)} 
+                  class={`inline-flex items-center px-3 py-2 text-sm font-medium rounded-md ${
+                    pageNum === page 
+                      ? 'bg-blue-600 text-white' 
+                      : 'border border-gray-300 text-gray-500 bg-white hover:bg-gray-50'
+                  }`}
+                >
+                  {pageNum}
+                </a>
               );
             })}
             
             {page < totalPages && (
               <>
-                <li><a href={generatePageUrl(page + 1)} uk-tooltip="下一页"><span uk-icon="chevron-right"></span></a></li>
-                <li><a href={generatePageUrl(totalPages)} uk-tooltip="末页"><span uk-icon="chevron-double-right"></span></a></li>
+                <a href={generatePageUrl(page + 1)} class="inline-flex items-center px-2 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-500 bg-white hover:bg-gray-50" title="下一页">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                  </svg>
+                </a>
+                <a href={generatePageUrl(totalPages)} class="inline-flex items-center px-2 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-500 bg-white hover:bg-gray-50" title="末页">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+                  </svg>
+                </a>
               </>
             )}
-          </ul>
+          </div>
         </div>
-      )}
-    </div>
-  </div>
-
-  <!-- 添加RSS源模态框 -->
-  <div id="add-source-modal" class="uk-modal-container" uk-modal>
-    <div class="uk-modal-dialog">
-      <div class="uk-modal-header">
-        <h2 class="uk-modal-title">添加RSS源</h2>
-        <button class="uk-modal-close-default" type="button" uk-close></button>
       </div>
-      
-      <div class="uk-modal-body">
-        <form id="add-source-form" class="uk-form-stacked">
-          <div class="uk-margin">
-            <label class="uk-form-label" for="source-name">源名称 *</label>
-            <input class="uk-input" id="source-name" type="text" 
-                   placeholder="例如：TechCrunch 制造业" required>
+    </div>
+  )}
+
+  <!-- Add RSS Source Modal -->
+  <div id="add-source-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+    <div class="relative top-20 mx-auto p-5 border w-full max-w-md shadow-lg rounded-md bg-white">
+      <div class="mt-3">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-medium text-gray-900">添加RSS源</h3>
+          <button onclick="hideAddSourceModal()" class="text-gray-400 hover:text-gray-600">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        
+        <form id="add-source-form" class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700" for="source-name">源名称 *</label>
+            <input class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" 
+                   id="source-name" type="text" 
+                   placeholder="例如：TechCrunch 制造业" required />
           </div>
           
-          <div class="uk-margin">
-            <label class="uk-form-label" for="source-url">RSS URL *</label>
-            <input class="uk-input" id="source-url" type="url" 
-                   placeholder="https://example.com/rss" required>
+          <div>
+            <label class="block text-sm font-medium text-gray-700" for="source-url">RSS URL *</label>
+            <input class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" 
+                   id="source-url" type="url" 
+                   placeholder="https://example.com/rss" required />
           </div>
           
-          <div class="uk-margin">
-            <label class="uk-form-label" for="vertical-name">垂直分类</label>
-            <select class="uk-select" id="vertical-name">
+          <div>
+            <label class="block text-sm font-medium text-gray-700" for="vertical-name">垂直分类</label>
+            <select class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" id="vertical-name">
               <option value="3D Print">3D打印</option>
               <option value="Smart Manufacturing">智能制造</option>
               <option value="Industrial IoT">工业物联网</option>
@@ -384,36 +473,59 @@ const errorSources = sources?.filter(s => s.error_count > 0).length || 0;
             </select>
           </div>
           
-          <div class="uk-margin">
-            <label class="uk-form-label" for="topic-for-ai">AI分析主题</label>
-            <input class="uk-input" id="topic-for-ai" type="text" 
+          <div>
+            <label class="block text-sm font-medium text-gray-700" for="topic-for-ai">AI分析主题</label>
+            <input class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" 
+                   id="topic-for-ai" type="text" 
                    placeholder="智能制造" 
-                   value="智能制造">
-            <div class="uk-text-small uk-text-muted uk-margin-small-top">
-              用于AI分析时的领域上下文
-            </div>
+                   value="智能制造" />
+            <p class="mt-1 text-xs text-gray-500">用于AI分析时的领域上下文</p>
           </div>
           
-          <div class="uk-margin">
-            <label class="uk-form-label">
-              <input class="uk-checkbox" type="checkbox" id="is-active" checked>
-              启用此RSS源
-            </label>
+          <div class="flex items-center">
+            <input class="rounded border-gray-300 text-blue-600 focus:ring-blue-500" type="checkbox" id="is-active" checked />
+            <label class="ml-2 block text-sm text-gray-700" for="is-active">启用此RSS源</label>
           </div>
         </form>
-      </div>
-      
-      <div class="uk-modal-footer uk-text-right">
-        <button class="uk-button uk-button-default uk-modal-close" type="button">取消</button>
-        <button class="uk-button uk-button-primary" type="button" id="save-source-btn">保存</button>
+        
+        <div class="flex justify-end space-x-3 mt-6">
+          <button onclick="hideAddSourceModal()" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">取消</button>
+          <button id="save-source-btn" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">保存</button>
+        </div>
       </div>
     </div>
   </div>
-</Layout>
+</DashboardLayout>
 
 <script>
+  // Modal functions
+  function showAddSourceModal() {
+    document.getElementById('add-source-modal')?.classList.remove('hidden');
+  }
+  
+  function hideAddSourceModal() {
+    document.getElementById('add-source-modal')?.classList.add('hidden');
+  }
+  
+  // Simple notification function
+  function showNotification(message: string, type: 'success' | 'error' | 'warning' = 'success') {
+    const notification = document.createElement('div');
+    const bgColor = type === 'success' ? 'bg-green-100 border-green-400 text-green-700' : 
+                   type === 'error' ? 'bg-red-100 border-red-400 text-red-700' : 
+                   'bg-yellow-100 border-yellow-400 text-yellow-700';
+    
+    notification.className = `fixed top-4 right-4 border px-4 py-3 rounded-lg shadow-lg z-50 max-w-sm ${bgColor}`;
+    notification.textContent = message;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+      notification.remove();
+    }, 5000);
+  }
+
   document.addEventListener('DOMContentLoaded', function() {
-    // 全选功能
+    // Select all checkbox functionality
     const selectAllCheckbox = document.getElementById('select-all') as HTMLInputElement;
     const sourceCheckboxes = document.querySelectorAll('.source-checkbox') as NodeListOf<HTMLInputElement>;
     
@@ -423,7 +535,7 @@ const errorSources = sources?.filter(s => s.error_count > 0).length || 0;
       });
     });
     
-    // 保存RSS源
+    // Save RSS source
     document.getElementById('save-source-btn')?.addEventListener('click', async function() {
       const form = document.getElementById('add-source-form') as HTMLFormElement;
       
@@ -435,12 +547,9 @@ const errorSources = sources?.filter(s => s.error_count > 0).length || 0;
         is_active: (document.getElementById('is-active') as HTMLInputElement).checked
       };
       
-      // 基本验证
+      // Basic validation
       if (!data.name.trim() || !data.url.trim()) {
-        UIkit.notification({
-          message: '请填写RSS源名称和URL',
-          status: 'danger'
-        });
+        showNotification('请填写RSS源名称和URL', 'error');
         return;
       }
       
@@ -456,36 +565,27 @@ const errorSources = sources?.filter(s => s.error_count > 0).length || 0;
         const result = await response.json();
         
         if (result.success) {
-          UIkit.notification({
-            message: result.message || 'RSS源添加成功！',
-            status: 'success'
-          });
-          UIkit.modal('#add-source-modal').hide();
+          showNotification(result.message || 'RSS源添加成功！', 'success');
+          hideAddSourceModal();
           window.location.reload();
         } else {
-          UIkit.notification({
-            message: result.error || '保存失败，请重试',
-            status: 'danger'
-          });
+          showNotification(result.error || '保存失败，请重试', 'error');
         }
       } catch (error) {
         console.error('保存失败:', error);
-        UIkit.notification({
-          message: '网络错误，请重试',
-          status: 'danger'
-        });
+        showNotification('网络错误，请重试', 'error');
       }
     });
     
-    // 测试RSS源连接
+    // Test RSS source connection
     document.querySelectorAll('.test-source-btn').forEach(btn => {
       btn.addEventListener('click', async function() {
         const sourceId = (this as HTMLElement).dataset.sourceId;
         const button = this as HTMLButtonElement;
         
-        // 显示加载状态
+        // Show loading state
         const originalIcon = button.innerHTML;
-        button.innerHTML = '<div uk-spinner="ratio: 0.6"></div>';
+        button.innerHTML = '<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
         button.disabled = true;
         
         try {
@@ -493,31 +593,22 @@ const errorSources = sources?.filter(s => s.error_count > 0).length || 0;
           const result = await response.json();
           
           if (result.success) {
-            UIkit.notification({
-              message: result.message,
-              status: 'success'
-            });
+            showNotification(result.message, 'success');
           } else {
-            UIkit.notification({
-              message: result.message || 'RSS源连接测试失败',
-              status: 'warning'
-            });
+            showNotification(result.message || 'RSS源连接测试失败', 'warning');
           }
         } catch (error) {
           console.error('测试RSS源失败:', error);
-          UIkit.notification({
-            message: '网络错误，无法测试连接',
-            status: 'danger'
-          });
+          showNotification('网络错误，无法测试连接', 'error');
         } finally {
-          // 恢复按钮状态
+          // Restore button state
           button.innerHTML = originalIcon;
           button.disabled = false;
         }
       });
     });
     
-    // 切换RSS源状态
+    // Toggle RSS source status
     document.querySelectorAll('.toggle-source-btn').forEach(btn => {
       btn.addEventListener('click', async function() {
         const sourceId = (this as HTMLElement).dataset.sourceId;
@@ -525,7 +616,7 @@ const errorSources = sources?.filter(s => s.error_count > 0).length || 0;
         const button = this as HTMLButtonElement;
         
         const originalContent = button.innerHTML;
-        button.innerHTML = '<div uk-spinner="ratio: 0.6"></div>';
+        button.innerHTML = '<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
         button.disabled = true;
         
         try {
@@ -544,24 +635,15 @@ const errorSources = sources?.filter(s => s.error_count > 0).length || 0;
           const result = await response.json();
           
           if (result.success) {
-            UIkit.notification({
-              message: result.message,
-              status: 'success'
-            });
-            // 刷新页面以更新状态显示
+            showNotification(result.message, 'success');
+            // Refresh page to update status display
             window.location.reload();
           } else {
-            UIkit.notification({
-              message: result.error || '状态切换失败',
-              status: 'danger'
-            });
+            showNotification(result.error || '状态切换失败', 'error');
           }
         } catch (error) {
           console.error('切换RSS源状态失败:', error);
-          UIkit.notification({
-            message: '网络错误，无法切换状态',
-            status: 'danger'
-          });
+          showNotification('网络错误，无法切换状态', 'error');
         } finally {
           button.innerHTML = originalContent;
           button.disabled = false;
@@ -569,51 +651,44 @@ const errorSources = sources?.filter(s => s.error_count > 0).length || 0;
       });
     });
     
-    // 删除RSS源
+    // Delete RSS source
     document.querySelectorAll('.delete-source-btn').forEach(btn => {
       btn.addEventListener('click', function() {
         const sourceId = (this as HTMLElement).dataset.sourceId;
-        UIkit.modal.confirm('确定要删除这个RSS源吗？此操作不可撤销。').then(async function() {
-          try {
-            const response = await fetch(`/api/rss-sources?id=${sourceId}`, {
-              method: 'DELETE'
-            });
-            
-            const result = await response.json();
-            
-            if (result.success) {
-              UIkit.notification({
-                message: result.message,
-                status: 'success'
-              });
-              window.location.reload();
-            } else {
-              UIkit.notification({
-                message: result.error || '删除失败',
-                status: 'danger'
-              });
-            }
-          } catch (error) {
-            console.error('删除RSS源失败:', error);
-            UIkit.notification({
-              message: '网络错误，删除失败',
-              status: 'danger'
-            });
-          }
-        });
+        
+        if (confirm('确定要删除这个RSS源吗？此操作不可撤销。')) {
+          deleteSource(sourceId);
+        }
       });
     });
     
-    // 批量操作
+    async function deleteSource(sourceId: string) {
+      try {
+        const response = await fetch(`/api/rss-sources?id=${sourceId}`, {
+          method: 'DELETE'
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          showNotification(result.message, 'success');
+          window.location.reload();
+        } else {
+          showNotification(result.error || '删除失败', 'error');
+        }
+      } catch (error) {
+        console.error('删除RSS源失败:', error);
+        showNotification('网络错误，删除失败', 'error');
+      }
+    }
+    
+    // Bulk operations
     document.getElementById('bulk-enable-btn')?.addEventListener('click', async function() {
       const checkedBoxes = document.querySelectorAll('.source-checkbox:checked') as NodeListOf<HTMLInputElement>;
       const sourceIds = Array.from(checkedBoxes).map(box => box.value);
       
       if (sourceIds.length === 0) {
-        UIkit.notification({
-          message: '请先选择要操作的RSS源',
-          status: 'warning'
-        });
+        showNotification('请先选择要操作的RSS源', 'warning');
         return;
       }
       
@@ -625,17 +700,14 @@ const errorSources = sources?.filter(s => s.error_count > 0).length || 0;
       const sourceIds = Array.from(checkedBoxes).map(box => box.value);
       
       if (sourceIds.length === 0) {
-        UIkit.notification({
-          message: '请先选择要操作的RSS源',
-          status: 'warning'
-        });
+        showNotification('请先选择要操作的RSS源', 'warning');
         return;
       }
       
       await performBatchOperation(sourceIds, false, '禁用');
     });
     
-    // 批量操作执行函数
+    // Batch operation execution function
     async function performBatchOperation(sourceIds: string[], isActive: boolean, actionName: string) {
       const promises = sourceIds.map(sourceId => 
         fetch('/api/rss-sources', {
@@ -656,52 +728,40 @@ const errorSources = sources?.filter(s => s.error_count > 0).length || 0;
         const failCount = results.length - successCount;
         
         if (failCount === 0) {
-          UIkit.notification({
-            message: `成功${actionName}了 ${successCount} 个RSS源`,
-            status: 'success'
-          });
+          showNotification(`成功${actionName}了 ${successCount} 个RSS源`, 'success');
         } else {
-          UIkit.notification({
-            message: `${actionName}了 ${successCount} 个RSS源，${failCount} 个失败`,
-            status: 'warning'
-          });
+          showNotification(`${actionName}了 ${successCount} 个RSS源，${failCount} 个失败`, 'warning');
         }
         
         window.location.reload();
       } catch (error) {
         console.error('批量操作失败:', error);
-        UIkit.notification({
-          message: `批量${actionName}失败`,
-          status: 'danger'
-        });
+        showNotification(`批量${actionName}失败`, 'error');
       }
     }
     
-    // 测试全部RSS源
+    // Test all RSS sources
     document.getElementById('test-all-btn')?.addEventListener('click', async function() {
       const button = this as HTMLButtonElement;
       const originalContent = button.innerHTML;
       
-      button.innerHTML = '<div uk-spinner="ratio: 0.6"></div> 测试中...';
+      button.innerHTML = '<svg class="w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> 测试中...';
       button.disabled = true;
       
-      // 获取所有RSS源ID
+      // Get all RSS source IDs
       const allSourceButtons = document.querySelectorAll('.test-source-btn');
       const sourceIds = Array.from(allSourceButtons).map(btn => 
         (btn as HTMLElement).dataset.sourceId
       );
       
       if (sourceIds.length === 0) {
-        UIkit.notification({
-          message: '没有找到RSS源',
-          status: 'warning'
-        });
+        showNotification('没有找到RSS源', 'warning');
         button.innerHTML = originalContent;
         button.disabled = false;
         return;
       }
       
-      // 批量测试所有RSS源
+      // Batch test all RSS sources
       const promises = sourceIds.map(sourceId => 
         fetch(`/api/rss-sources?action=test&sourceId=${sourceId}`)
           .then(res => res.json())
@@ -713,16 +773,13 @@ const errorSources = sources?.filter(s => s.error_count > 0).length || 0;
         const successCount = results.filter(r => r.success).length;
         const failCount = results.length - successCount;
         
-        UIkit.notification({
-          message: `测试完成: ${successCount} 个正常, ${failCount} 个异常`,
-          status: failCount === 0 ? 'success' : 'warning'
-        });
+        showNotification(
+          `测试完成: ${successCount} 个正常, ${failCount} 个异常`,
+          failCount === 0 ? 'success' : 'warning'
+        );
       } catch (error) {
         console.error('批量测试失败:', error);
-        UIkit.notification({
-          message: '批量测试失败',
-          status: 'danger'
-        });
+        showNotification('批量测试失败', 'error');
       } finally {
         button.innerHTML = originalContent;
         button.disabled = false;
@@ -730,4 +787,24 @@ const errorSources = sources?.filter(s => s.error_count > 0).length || 0;
     });
   });
 </script>
-</Layout>
+
+<style>
+  /* Custom scrollbar */
+  .overflow-x-auto::-webkit-scrollbar {
+    height: 6px;
+  }
+  
+  .overflow-x-auto::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 3px;
+  }
+  
+  .overflow-x-auto::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 3px;
+  }
+  
+  .overflow-x-auto::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+  }
+</style>

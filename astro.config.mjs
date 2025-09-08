@@ -6,8 +6,8 @@ import vercel from '@astrojs/vercel';
 export default defineConfig({
   integrations: [
     tailwind({
-      // 禁用默认基础样式，使用Franken UI
-      applyBaseStyles: false,
+      // 使用默认Tailwind基础样式
+      applyBaseStyles: true,
     })
   ],
   output: 'server',

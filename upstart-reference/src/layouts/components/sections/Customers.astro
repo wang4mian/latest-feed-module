@@ -1,0 +1,121 @@
+---
+import Marquee from "@/components/widgets/Marquee.astro";
+import { getEntryCTM } from "@/lib/contentParser.astro";
+import overrideObjects from "@/lib/utils/overrideObjects.ts";
+import OptimizedImage from "@/components/utilities/OptimizedImage.astro";
+import type { customersSectionType } from "@/types";
+import { markdownify } from "@/lib/utils/textConverter";
+
+type Props = {
+  content?: customersSectionType;
+  class?: string;
+  width?: "sm" | "md";
+};
+
+// Fetching the default content for the this section
+let default_content = (
+  await getEntryCTM("sections", "customers", Astro.currentLocale)
+)?.data as customersSectionType;
+
+// Enables content customization (e.g., title, description) with a fallback to 'default_content' if not provided.
+// The 'content' prop should match the structure of 'default_content'.
+// Allows using this section with different content across multiple pages.
+// If 'content' is missing, 'default_content' will be used.
+let actual_content = overrideObjects(
+  { ...default_content },
+  Astro.props.content,
+) as customersSectionType;
+
+// Extracting required values from 'content' object
+let {
+  enable = true,
+  description,
+  marquee,
+  list,
+} = actual_content as customersSectionType;
+
+const { class: className, width = "sm", ...rest } = Astro.props;
+
+let duplicatedList = list;
+
+// If list length is less then 3 then duplicate the list at at least 3 times
+if (list.length <= 3) {
+  Array.from({ length: 3 }, () => [...list]).flat();
+} else if (list.length > 3) {
+  Array.from({ length: 2 }, () => [...list]).flat();
+}
+---
+
+{
+  enable && (
+    <section class:list={[className]} {...rest}>
+      <div class="container">
+        <div
+          class:list={[
+            "mx-auto text-center",
+            width === "sm" ? "max-w-screen-sm" : "max-w-screen-md",
+          ]}>
+          {description && (
+            <p
+              class="shrink-0 text-center text-xs tracking-wider opacity-80"
+              set:html={markdownify(description)}
+            />
+          )}
+          <div class="relative mt-4 flex items-center overflow-hidden [mask-image:linear-gradient(to_right,rgba(0,_0,_0,_0)_0%,rgb(0,_0,_0)_10%,rgb(0,_0,_0)_90%,rgba(0,_0,_0,_0)_100%)]">
+            <Marquee
+              marqueeElements={duplicatedList.length}
+              marqueePauseOnHover={marquee.pause_on_hover}
+              marqueeReverse={marquee.reverse}
+              marqueeDuration={marquee.duration}
+              marqueeElementWidth={marquee.element_width}
+              marqueeElementWidthAuto={marquee.element_width_auto}
+              marqueeElementWidthResponsive={
+                marquee.element_width_in_small_devices
+              }>
+              {duplicatedList.map((item) => (
+                <div
+                  class:list={[
+                    "px-4",
+                    {
+                      "min-w-[var(--marquee-element-width-responsive)] md:min-w-[var(--marquee-element-width)]":
+                        !marquee.element_width_auto,
+                    },
+                    {
+                      "min-w-fit": marquee.element_width_auto,
+                    },
+                  ]}>
+                  <OptimizedImage
+                    src={item.src}
+                    alt={item.alt}
+                    height={32}
+                    class="min-h-8 min-w-fit"
+                  />
+                </div>
+              ))}
+              {duplicatedList.map((item) => (
+                <div
+                  class:list={[
+                    "px-4",
+                    {
+                      "min-w-[var(--marquee-element-width-responsive)] md:min-w-[var(--marquee-element-width)]":
+                        !marquee.element_width_auto,
+                    },
+                    {
+                      "min-w-fit": marquee.element_width_auto,
+                    },
+                  ]}>
+                  <OptimizedImage
+                    src={item.src}
+                    alt={item.alt}
+                    height={32}
+                    class="min-h-8 min-w-fit"
+                  />
+                </div>
+              ))}
+            </Marquee>
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}

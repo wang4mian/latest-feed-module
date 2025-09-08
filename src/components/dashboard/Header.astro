@@ -1,0 +1,50 @@
+---
+// Dashboard Header Component
+---
+
+<header class="bg-white shadow-sm border-b border-gray-200">
+  <div class="px-6 py-4">
+    <div class="flex items-center justify-between">
+      <!-- Left: Logo and title -->
+      <div class="flex items-center">
+        <img src="/kuato-logo.png" alt="KUATO Logo" class="w-10 h-10 mr-3 rounded-full" />
+        <h1 class="text-2xl font-semibold text-gray-900">
+          KUATO
+        </h1>
+        <span class="ml-3 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+          跨语言跨模态内容套利 v2.1
+        </span>
+      </div>
+
+      <!-- Right: Status and actions -->
+      <div class="flex items-center space-x-4">
+        <!-- System status -->
+        <div class="flex items-center text-sm text-gray-500">
+          <div class="flex items-center">
+            <div class="h-2 w-2 bg-green-400 rounded-full mr-2"></div>
+            <span>系统运行正常</span>
+          </div>
+        </div>
+
+        <!-- Last update time -->
+        <div class="text-sm text-gray-500">
+          最后更新: <span id="last-updated"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<script>
+  // Update last updated time
+  function updateTime() {
+    const element = document.getElementById('last-updated');
+    if (element) {
+      element.textContent = new Date().toLocaleString('zh-CN');
+    }
+  }
+  
+  // Set initial time and update every minute
+  updateTime();
+  setInterval(updateTime, 60000);
+</script>

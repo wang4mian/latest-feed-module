@@ -1,0 +1,81 @@
+{
+  "colors": {
+    "default": {
+      "theme_color": {
+        "primary": "#4F1AD6",
+        "secondary": "#B2A6F1",
+        "accent": "#1A122E",
+        "body": "#0e0c0c",
+        "border": "#242222",
+        "theme_dark": "#1A191C"
+      },
+      "text_color": {
+        "default": "#C8C1C1",
+        "dark": "#000E30",
+        "light": "#fff6f6"
+      }
+    }
+  },
+  "fonts": {
+    "font_family": [
+      {
+        "name": "Satoshi",
+        "src": [
+          {
+            "style": "normal",
+            "weight": "400",
+            "path": "public/fonts/Satoshi-Regular.woff2"
+          },
+          {
+            "style": "normal",
+            "weight": "500",
+            "path": "public/fonts/Satoshi-Medium.woff2"
+          }
+        ],
+        "preload": false,
+        "display": "swap",
+        "cssVariable": "font-primary",
+        "fallback": "sans-serif",
+        "locallyHosted": false,
+        "__comment": "set locallyHosted: true if you want to download google fonts and hosted them locally automatically"
+      },
+      {
+        "name": "Syne",
+        "src": [
+          {
+            "style": "normal",
+            "weight": "500"
+          }
+        ],
+        "preload": true,
+        "display": "swap",
+        "cssVariable": "font-secondary",
+        "provider": "google-fonts",
+        "fallback": "sans-serif",
+        "locallyHosted": true,
+        "__comment": "set locallyHosted: true if you want to download google fonts and hosted them locally automatically"
+      },
+      {
+        "name": "Instrument Serif",
+        "src": [
+          {
+            "style": "normal",
+            "weight": "400"
+          }
+        ],
+        "preload": true,
+        "display": "swap",
+        "cssVariable": "font-tertiary",
+        "provider": "google-fonts",
+        "fallback": "sans-serif",
+        "locallyHosted": true,
+        "__comment": "set locallyHosted: true if you want to download google fonts and hosted them locally automatically"
+      }
+    ],
+    "font_size": {
+      "base": "16",
+      "type_scale": "1.35",
+      "line_height": "1.8"
+    }
+  }
+}

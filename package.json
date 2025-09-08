@@ -1,26 +1,36 @@
 {
-  "name": "manufacturing-intelligence",
+  "name": "kuato",
   "type": "module",
-  "version": "0.0.1",
+  "version": "2.1.0",
   "scripts": {
-    "dev": "astro dev",
-    "start": "astro dev",
+    "dev": "astro dev --port 4000",
+    "start": "astro dev --port 4000",
     "build": "astro build",
-    "preview": "astro preview",
-    "astro": "astro"
+    "preview": "astro preview --port 4000",
+    "astro": "astro",
+    "format": "prettier -w ./src"
   },
   "dependencies": {
+    "@astrojs/check": "^0.9.4",
     "@astrojs/tailwind": "^5.1.0",
     "@astrojs/vercel": "^8.2.6",
     "@supabase/supabase-js": "^2.38.0",
     "astro": "^5.13.4",
+    "aos": "^2.3.4",
+    "date-fns": "^4.1.0",
     "dotenv": "^17.2.1",
-    "franken-ui": "^1.1.0",
-    "tailwindcss": "^3.4.1",
-    "uikit": "^3.21.8"
+    "motion": "^12.5.0",
+    "smoothscroll-for-websites": "^1.5.1",
+    "tailwindcss": "^3.4.1"
   },
   "devDependencies": {
+    "@tailwindcss/forms": "^0.5.10",
+    "@tailwindcss/typography": "^0.5.16",
     "@types/node": "^22.5.4",
+    "prettier": "^3.3.3",
+    "prettier-plugin-astro": "^0.14.1",
+    "prettier-plugin-tailwindcss": "^0.6.11",
+    "sharp": "^0.33.5",
     "typescript": "^5.6.2"
   }
 }

@@ -1,0 +1,60 @@
+---
+interface Props {
+  class?: string; // Class of the marquee
+  marqueeElements: number; // Number of elements
+  marqueeElementWidth: string; // Width of the marquee
+  marqueeElementWidthAuto?: boolean; // Is the width auto
+  marqueeElementWidthResponsive: string; // Width of the marquee
+  marqueePauseOnHover?: boolean; // Duration of the marquee
+  marqueeReverse?: "reverse" | "" | undefined; // Duration of the marquee
+  marqueeDuration?: string; // Duration of the marquee
+}
+
+let {
+  marqueeElements,
+  marqueeElementWidth,
+  marqueeElementWidthAuto = true,
+  marqueeElementWidthResponsive,
+  marqueePauseOnHover = false,
+  marqueeDuration = "50s",
+  marqueeReverse = "",
+} = Astro.props;
+
+// Remove value of if `marqueeElementWidth`, `marqueeElementWidthResponsive` marqueeElementWidthAuto true
+if (marqueeElementWidthAuto) {
+  marqueeElementWidth = "";
+  marqueeElementWidthResponsive = "";
+}
+---
+
+<div
+  class:list={[
+    "marquee",
+    {
+      "marquee-revers": marqueeReverse,
+      "marquee-pause-on-hover": marqueePauseOnHover,
+    },
+  ]}
+  style={`--marquee-elements:${marqueeElements};--marquee-element-width-responsive:calc(${marqueeElementWidthResponsive} / var(--marquee-elements) * ${marqueeElements});--marquee-element-width:calc(${marqueeElementWidth} / var(--marquee-elements) * ${marqueeElements});${"--marquee-duration:" + marqueeDuration};--marquee-reverse:${marqueeReverse};`}>
+  <div
+    class:list={[
+      "marquee-content flex items-center",
+      { "marquee-element-width-auto": marqueeElementWidthAuto },
+      Astro.props.class,
+    ]}>
+    <slot />
+  </div>
+</div>
+<script>
+  const marqueeContents = document.querySelectorAll(
+    ".marquee-element-width-auto",
+  ) as NodeListOf<HTMLElement>;
+
+  marqueeContents.forEach((marqueeContent) => {
+    if (marqueeContent) {
+      const totalWidth = marqueeContent.scrollWidth;
+      // If you’re duplicating content, you might use half of totalWidth
+      marqueeContent.style.setProperty("--total-width", `${totalWidth / 2}px`);
+    }
+  });
+</script>

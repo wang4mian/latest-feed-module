@@ -1,0 +1,126 @@
+---
+import Marquee from "@/components/widgets/Marquee.astro";
+import { getEntryCTM } from "@/lib/contentParser.astro";
+import overrideObjects from "@/lib/utils/overrideObjects.ts";
+import type { MarqueeConfig, Section } from "@/types";
+import { markdownify } from "@/lib/utils/textConverter";
+import TestimonialCard from "@/layouts/components/cards/TestimonialCard.astro";
+import Subtitle from "../widgets/Subtitle.astro";
+
+// Type for this section data
+export type testimonial_section_type = Section & {
+  marquee: MarqueeConfig;
+  list: {
+    enable: boolean;
+    content: string;
+    customer: {
+      image: string;
+      name: string;
+      role: string;
+    };
+  }[];
+};
+type Props = {
+  content?: testimonial_section_type;
+};
+
+// Fetching the default content for the this section
+let default_content = (
+  await getEntryCTM("sections", "testimonial", Astro.currentLocale)
+)?.data as testimonial_section_type;
+
+// Enables content customization (e.g., title, description) with a fallback to 'default_content' if not provided.
+// The 'content' prop should match the structure of 'default_content'.
+// Allows using this section with different content across multiple pages.
+// If 'content' is missing, 'default_content' will be used.
+let actual_content = overrideObjects(
+  { ...default_content },
+  Astro.props.content,
+) as testimonial_section_type;
+
+// Extracting required values from 'content' object
+let {
+  enable = true,
+  title,
+  subtitle,
+  list,
+  marquee,
+} = actual_content as testimonial_section_type;
+
+let listOne = list.slice(0, Math.ceil(list.length / 2));
+let listTwo = list.slice(Math.ceil(list.length / 2));
+---
+
+{
+  enable && (
+    <section class="after:bg-[linear-gradient(180deg,theme(colors.primary/0%)_8.79%,theme(colors.primary/30%)_52.48%,theme(colors.primary/0%)_100%)] relative space-y-12 after:pointer-events-none after:absolute after:inset-0 after:-z-10 after:size-full after:content-[''] md:space-y-16">
+      <div class="container">
+        <div
+          data-aos="fade-up-sm"
+          class="mx-auto shrink-0 text-center lg:max-w-2xl">
+          <Subtitle content={subtitle} />
+          {title && (
+            <h2
+              class="has-italic-text capitalize"
+              set:html={markdownify(title)}
+            />
+          )}
+        </div>
+      </div>
+      <div data-aos="fade-up-sm" data-aos-delay="200">
+        <div class="relative flex overflow-x-hidden">
+          <Marquee
+            class="items-stretch"
+            marqueeElements={listOne.length}
+            marqueePauseOnHover={marquee.pause_on_hover}
+            marqueeReverse={marquee.reverse}
+            marqueeDuration={marquee.duration}
+            marqueeElementWidth={marquee.element_width}
+            marqueeElementWidthAuto={marquee.element_width_auto}
+            marqueeElementWidthResponsive={
+              marquee.element_width_in_small_devices
+            }>
+            {listOne.map((item) => (
+              <div class="min-w-[var(--marquee-element-width-responsive)] px-4 md:min-w-[var(--marquee-element-width)]">
+                <TestimonialCard class="min-h-full" content={item} />
+              </div>
+            ))}
+            {listOne.map((item) => (
+              <div
+                class="min-w-[var(--marquee-element-width-responsive)] px-4 md:min-w-[var(--marquee-element-width)]"
+                aria-hidden="true">
+                <TestimonialCard class="min-h-full" content={item} />
+              </div>
+            ))}
+          </Marquee>
+        </div>
+        <div class="relative mt-6 flex overflow-x-hidden">
+          <Marquee
+            class="items-stretch"
+            marqueeElements={listTwo.length}
+            marqueePauseOnHover={marquee.pause_on_hover}
+            marqueeReverse={"reverse"}
+            marqueeDuration={marquee.duration}
+            marqueeElementWidth={marquee.element_width}
+            marqueeElementWidthAuto={marquee.element_width_auto}
+            marqueeElementWidthResponsive={
+              marquee.element_width_in_small_devices
+            }>
+            {listTwo.map((item) => (
+              <div class="min-w-[var(--marquee-element-width-responsive)] px-4 md:min-w-[var(--marquee-element-width)]">
+                <TestimonialCard class="min-h-full" content={item} />
+              </div>
+            ))}
+            {listTwo.map((item) => (
+              <div
+                class="min-w-[var(--marquee-element-width-responsive)] px-4 md:min-w-[var(--marquee-element-width)]"
+                aria-hidden="true">
+                <TestimonialCard class="min-h-full" content={item} />
+              </div>
+            ))}
+          </Marquee>
+        </div>
+      </div>
+    </section>
+  )
+}

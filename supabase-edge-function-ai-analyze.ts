@@ -33,7 +33,7 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey)
 
     // Get request parameters
-    const { article_id, batch_size = 5 } = await req.json()
+    const { article_id, batch_size = 15 } = await req.json()
 
     let articles: ArticleForAnalysis[] = []
 

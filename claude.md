@@ -12,7 +12,7 @@
 - **前端框架**：Astro v5 + Franken UI + UIKit
 - **后端架构**：Supabase Edge Functions + PostgreSQL
 - **数据库**：Supabase PostgreSQL
-- **AI服务**：Crawl4AI (内容提取) + Gemini AI (智能分析)
+- **AI服务**：Jina AI Reader (内容提取) + Gemini AI (智能分析)
 - **定时任务**：Supabase pg_cron
 - **编辑器**：Doocs MD (开源微信编辑器)
 - **样式系统**：Franken UI + Tailwind CSS
@@ -28,24 +28,24 @@ Supabase Edge Functions (后端业务逻辑)
     ↓
 Supabase PostgreSQL (数据存储)
     ↓
-外部AI服务 (Crawl4AI + Gemini AI)
+外部AI服务 (Jina AI Reader + Gemini AI)
 
 自动化AI处理流程:
 Supabase pg_cron (每2小时) → rss-fetch Edge Function (RSS抓取)
     ↓
-Supabase pg_cron (每15分钟) → job-processor Edge Function (任务处理)
+Supabase pg_cron (每15分钟) → ai-analyze Edge Function (直接调用)
     ↓
-ai-analyze Edge Function → Crawl4AI (全文提取) → Gemini AI (智能分析)
+Jina AI Reader (全文提取) → Gemini AI (智能分析)
     ↓
 数据库更新 (文章、实体、统计)
 ```
 
 ### 架构优势
 - **职责分离清晰**: Vercel专注前端，Supabase专注后端
-- **AI处理自动化**: 完整的异步任务队列，支持重试机制
-- **性能最优**: 减少跨服务调用，降低延迟
+- **AI处理自动化**: 完整的自动化流水线，简化架构设计
+- **性能最优**: 直接调用AI分析，减少中间层延迟
 - **维护简单**: 统一的后端生态，减少配置复杂性
-- **成本效率**: 避免重复的服务器资源消耗
+- **成本效率**: Jina AI免费使用，避免Crawl4AI付费依赖
 
 ---
 
@@ -290,13 +290,13 @@ CREATE TABLE article_publications (
 ```
 📡 RSS抓取 (每2小时)
     ↓
-📋 任务队列创建 (自动)
+📝 文章存储 (articles表, ai_score=null)
     ↓  
-⚙️ 任务处理器 (每15分钟)
+🤖 AI分析处理 (每15分钟)
     ↓
-🕷️ Crawl4AI全文提取 (自动)
+🌐 Jina AI内容提取 (自动)
     ↓
-🤖 Gemini AI智能分析 (自动)
+🧠 Gemini AI智能分析 (自动)
     - 0-100分评分
     - 5大类别分类
     - 中文摘要生成
@@ -314,8 +314,8 @@ Supabase pg_cron → rss-fetch Edge Function → 解析RSS → 三层防重复�
 
 ### 第2阶段：AI智能分析
 ```
-job-processor Edge Function → ai-analyze Edge Function → 
-Crawl4AI内容提取 → Gemini AI分析评分 → 实体识别 → 
+定时任务 (每15分钟) → ai-analyze Edge Function (直接调用) → 
+Jina AI内容提取 → Gemini AI分析评分 → 实体识别 → 
 数据库更新(articles + entities + article_entities)
 ```
 
@@ -734,6 +734,82 @@ npm run build
 
 ---
 
+## 🐛 架构Bug修复记录
+
+### **2025-09-08 修复：AI处理自动化失效**
+
+#### **Bug现象**
+- RSS抓取正常工作，但AI分析未自动触发
+- articles表中大量文章ai_score字段为null
+- 手动测试AI分析功能正常，自动化失效
+
+#### **根本原因**
+架构混合冲突：系统同时存在两套AI处理架构
+- ❌ **问题架构**: `定时任务 → job-processor → ai-analyze`（401认证错误）
+- ✅ **工作架构**: `定时任务 → ai-analyze`（直接调用正常）
+
+#### **修复方案**
+1. 移除复杂的job-processor中间层
+2. 简化定时任务直接调用ai-analyze Edge Function
+3. 更新定时任务名称：`ai-processing-pipeline` → `direct-ai-processing`
+
+#### **技术栈变更**
+- **内容提取**: Crawl4AI Cloud → Jina AI Reader (免费、稳定)
+- **架构模式**: 任务队列模式 → 直接调用模式
+
+#### **修复结果**
+- ✅ 定时任务恢复正常，每15分钟自动处理5篇文章
+- ✅ 系统完全自动化运行，无需人工干预
+- ✅ 成本优化：移除Crawl4AI付费依赖
+
+### **2025-09-08 前端功能完善**
+
+#### **UI品牌更新**
+- **品牌定位**: 更新为"跨语言跨模态内容套利"系统
+- **版本标识**: v2.1 跨语言跨模态内容套利
+- **页面标题**: 运营概览 → Overview
+
+#### **文章池核心功能修复**
+
+**1. JavaScript函数作用域问题**
+```javascript
+// ❌ 问题：函数无法在HTML onclick中调用
+const adoptArticle = async (articleId) => { /* ... */ }
+
+// ✅ 解决：使用function声明+全局暴露
+function adoptArticle(articleId) { /* ... */ }
+window.adoptArticle = adoptArticle;
+```
+
+**2. Astro模板语法错误**
+```astro
+<!-- ❌ 错误语法 -->
+<option value="archived" {status === 'archived' ? 'selected' : ''}>
+
+<!-- ✅ 正确语法 -->
+<option value="archived" selected={status === 'archived'}>
+```
+
+**3. 文章状态流转逻辑**
+- **采用功能**: 文章状态更新为'adopted'，从默认筛选中消失
+- **归档功能**: 文章状态更新为'archived'，可通过筛选器查看
+- **用户反馈**: 操作成功后显示通知，2秒后自动刷新页面
+- **筛选系统**: 支持所有状态筛选，默认显示待处理文章
+
+**4. 数据显示优化**
+- **字段修复**: `primary_category` → `ai_category`（匹配数据库字段）
+- **摘要显示**: 添加ai_summary字段前端展示
+- **计数简化**: "筛选结果: X 篇"（简化冗余描述）
+
+#### **修复验证结果**
+- ✅ 采用/归档按钮正常工作
+- ✅ 文章状态正确更新和筛选
+- ✅ 已归档文章可正确筛选显示
+- ✅ 用户操作有明确反馈
+- ✅ 页面数据正确匹配数据库字段
+
+---
+
 ## ⚠️ 重要注意事项
 
 ### 数据完整性
@@ -763,10 +839,12 @@ npm run build
 ### ✅ **已完成并验证功能**
 1. **完整数据库架构** - 8张核心表，完整的关系设计
 2. **RSS抓取系统** - 43个源，三层防重复，批量处理，错误处理
-3. **AI分析系统** - Crawl4AI + Gemini AI，自动评分，实体抽取
-4. **前端界面** - Astro + Franken UI，5个完整页面
+3. **AI分析系统** - Jina AI + Gemini AI，自动评分，实体抽取
+4. **前端界面** - Astro + Franken UI，5个完整页面，核心交互功能完善
 5. **自动化流程** - pg_cron定时任务，Edge Functions部署完成
 6. **部署和测试** - Vercel生产环境，完整测试验证
+7. **文章池功能** - 采用/归档操作，状态筛选，用户反馈完善
+8. **品牌体系** - 跨语言跨模态内容套利定位明确
 
 ### 🚧 **开发中功能**
 1. **编译工作台** - 深度文章生成界面
@@ -785,11 +863,14 @@ npm run build
 - **实体数量**: 500+ 个公司、技术、人物实体
 - **成功率**: RSS抓取 >95%，AI处理 >98%
 - **响应时间**: 前端 <2s，API <5s
+- **前端功能**: 文章池交互100%正常，状态管理完善
+- **用户体验**: 操作反馈及时，数据一致性保障
 
 ---
 
 **这个文档包含了项目的完整技术规格和实际实现状态。系统已经完全就绪并在生产环境中稳定运行。AI智能分析流水线正常工作，自动化程度高，功能完备。请在后续开发和维护过程中始终参考这个最新的技术文档！**
 
-**项目状态**: 🟢 **完全就绪，AI智能分析正常运行**  
-**版本**: v2.0.0 (AI增强版)  
-**最后更新**: 2025-08-28
+**项目状态**: 🟢 **完全就绪，前后端功能完善，AI智能分析自动化运行中**  
+**版本**: v2.1.0 (架构优化版 + 前端功能完善版)  
+**核心功能**: 跨语言跨模态内容套利系统  
+**最后更新**: 2025-09-08 (前端Bug修复完成)

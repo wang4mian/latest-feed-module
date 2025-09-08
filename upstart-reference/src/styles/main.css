@@ -1,0 +1,20 @@
+@import "tailwindcss";
+
+@config "../../tailwind.config.js";
+
+@import "preline/variants.css";
+
+@plugin "@tailwindcss/forms";
+@plugin "@tailwindcss/typography";
+
+@import "./safe.css";
+
+@layer base {
+  @import "./base.css";
+}
+
+@layer components {
+  @import "./animation.css";
+  @import "./navigation.css";
+  @import "./components.css";
+}

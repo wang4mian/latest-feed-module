@@ -138,6 +138,9 @@ export const getArticles = async (filters: {
   // 应用筛选条件
   if (filters.status) {
     query = query.eq('overall_status', filters.status)
+  } else {
+    // 文章池默认只显示待处理的文章：ready_for_review 和 reviewed
+    query = query.in('overall_status', ['ready_for_review', 'reviewed'])
   }
   
   if (filters.category) {
@@ -171,10 +174,12 @@ export const getArticles = async (filters: {
   }
   
   // 应用分页
-  if (filters.offset && filters.limit) {
-    query = query.range(filters.offset, filters.offset + filters.limit - 1)
-  } else if (filters.limit) {
-    query = query.limit(filters.limit)
+  if (filters.limit !== undefined) {
+    if (filters.offset !== undefined) {
+      query = query.range(filters.offset, filters.offset + filters.limit - 1)
+    } else {
+      query = query.limit(filters.limit)
+    }
   }
   
   // 执行查询并返回结果

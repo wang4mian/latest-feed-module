@@ -28,7 +28,7 @@ SELECT cron.schedule(
   $$
   SELECT net.http_post(
     url := 'https://msvgeriacsaaakmxvqye.supabase.co/functions/v1/ai-analyze',
-    body := '{"batch_size": 5}',
+    body := '{"batch_size": 15}',
     headers := '{"Content-Type": "application/json", "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1zdmdlcmlhY3NhYWFrbXh2cXllIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTczNzYwNDIwOSwiZXhwIjoyMDUzMTgwMjA5fQ.O1zKC51UUwQWxSsavmIiVQVFZuexYP1HoC3YNY4ViM0"}'::jsonb
   );
   $$

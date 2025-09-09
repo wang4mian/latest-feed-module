@@ -155,22 +155,22 @@ export const getArticles = async (filters: {
     query = query.or(`title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`)
   }
   
-  // 应用排序
+  // 应用排序 - 添加第二排序字段确保稳定性
   switch (filters.sort) {
     case 'ai_score_desc':
-      query = query.order('ai_score', { ascending: false })
+      query = query.order('ai_score', { ascending: false }).order('created_at', { ascending: false })
       break
     case 'ai_score_asc':
-      query = query.order('ai_score', { ascending: true })
+      query = query.order('ai_score', { ascending: true }).order('created_at', { ascending: false })
       break
     case 'created_at_desc':
-      query = query.order('created_at', { ascending: false })
+      query = query.order('created_at', { ascending: false }).order('ai_score', { ascending: false })
       break
     case 'created_at_asc':
-      query = query.order('created_at', { ascending: true })
+      query = query.order('created_at', { ascending: true }).order('ai_score', { ascending: false })
       break
     default:
-      query = query.order('created_at', { ascending: false })
+      query = query.order('created_at', { ascending: false }).order('ai_score', { ascending: false })
   }
   
   // 应用分页

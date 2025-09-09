@@ -239,7 +239,7 @@ const generatePageUrl = (pageNum: number) => {
   ) : (
     <div class="space-y-4">
       {articles.map((article) => (
-        <div class="dashboard-card hover:shadow-md transition-shadow">
+        <div class="dashboard-card hover:shadow-md transition-shadow" data-article-id={article.id}>
           <div class="dashboard-card-body">
             <div class="flex items-start space-x-4">
               <!-- AI Score Badge -->
@@ -463,16 +463,33 @@ const generatePageUrl = (pageNum: number) => {
       });
       
       if (response.ok) {
-        // 显示成功提示并刷新页面
+        // 显示成功提示
         const notification = document.createElement('div');
         notification.className = 'fixed top-4 right-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg shadow-lg z-50';
         notification.textContent = '✅ 文章已采用，已添加到编辑工作台';
         document.body.appendChild(notification);
         
+        // 立即从DOM中移除该文章卡片
+        const articleCard = document.querySelector(`[data-article-id="${articleId}"]`);
+        if (articleCard) {
+          articleCard.style.transition = 'opacity 0.3s ease-out';
+          articleCard.style.opacity = '0.5';
+          setTimeout(() => {
+            articleCard.remove();
+            // 更新文章计数
+            const countElement = document.querySelector('.text-blue-600');
+            if (countElement) {
+              const currentCount = parseInt(countElement.textContent);
+              if (currentCount > 0) {
+                countElement.textContent = (currentCount - 1) + ' 篇';
+              }
+            }
+          }, 300);
+        }
+        
         setTimeout(() => {
           notification.remove();
-          location.reload();
-        }, 2000);
+        }, 3000);
       } else {
         alert('操作失败，请重试');
       }
@@ -490,16 +507,33 @@ const generatePageUrl = (pageNum: number) => {
       });
       
       if (response.ok) {
-        // 显示成功提示并刷新页面
+        // 显示成功提示
         const notification = document.createElement('div');
         notification.className = 'fixed top-4 right-4 bg-gray-100 border border-gray-400 text-gray-700 px-4 py-3 rounded-lg shadow-lg z-50';
         notification.textContent = '📁 文章已归档';
         document.body.appendChild(notification);
         
+        // 立即从DOM中移除该文章卡片
+        const articleCard = document.querySelector(`[data-article-id="${articleId}"]`);
+        if (articleCard) {
+          articleCard.style.transition = 'opacity 0.3s ease-out';
+          articleCard.style.opacity = '0.5';
+          setTimeout(() => {
+            articleCard.remove();
+            // 更新文章计数
+            const countElement = document.querySelector('.text-blue-600');
+            if (countElement) {
+              const currentCount = parseInt(countElement.textContent);
+              if (currentCount > 0) {
+                countElement.textContent = (currentCount - 1) + ' 篇';
+              }
+            }
+          }, 300);
+        }
+        
         setTimeout(() => {
           notification.remove();
-          location.reload();
-        }, 2000);
+        }, 3000);
       } else {
         alert('操作失败，请重试');
       }

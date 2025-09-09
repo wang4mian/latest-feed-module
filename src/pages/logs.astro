@@ -1,0 +1,389 @@
+---
+import DashboardLayout from '../layouts/DashboardLayout.astro';
+import { supabase } from '../lib/supabase';
+
+// 获取最近7天的AI使用统计
+let dailyUsage: any[] = [];
+let monthlyStats = {
+  totalArticles: 0,
+  totalTokens: 0,
+  totalCost: 0,
+  avgCostPerArticle: 0
+};
+
+try {
+  // 获取每日统计数据
+  const { data: dailyData } = await supabase
+    .from('daily_ai_usage')
+    .select('*')
+    .order('date', { ascending: false })
+    .limit(7);
+  
+  dailyUsage = dailyData || [];
+
+  // 计算本月统计
+  if (dailyUsage.length > 0) {
+    monthlyStats = {
+      totalArticles: dailyUsage.reduce((sum, day) => sum + (day.articles_processed || 0), 0),
+      totalTokens: dailyUsage.reduce((sum, day) => sum + (day.total_tokens || 0), 0),
+      totalCost: dailyUsage.reduce((sum, day) => sum + (parseFloat(day.total_cost_usd || 0)), 0),
+      avgCostPerArticle: dailyUsage.length > 0 ? 
+        dailyUsage.reduce((sum, day) => sum + (parseFloat(day.avg_cost_per_article_usd || 0)), 0) / dailyUsage.length : 0
+    };
+  }
+} catch (error) {
+  console.error('Failed to load AI usage stats:', error);
+}
+
+// 获取系统状态
+let systemHealth = {
+  database: 'unknown',
+  aiService: 'unknown',
+  rssFeeds: 'unknown'
+};
+
+try {
+  // 检查数据库连接
+  const { data: dbTest } = await supabase.from('articles').select('count').limit(1);
+  systemHealth.database = dbTest ? 'healthy' : 'error';
+
+  // 检查RSS源状态
+  const { data: rssStatus } = await supabase
+    .from('rss_sources')
+    .select('is_active, error_count')
+    .eq('is_active', true);
+  
+  const activeFeeds = rssStatus?.length || 0;
+  const errorFeeds = rssStatus?.filter(feed => (feed.error_count || 0) > 5).length || 0;
+  systemHealth.rssFeeds = errorFeeds > 0 ? 'warning' : activeFeeds > 0 ? 'healthy' : 'error';
+
+  // 检查AI服务状态（基于最近的处理记录）
+  const { data: recentProcessing } = await supabase
+    .from('articles')
+    .select('updated_at')
+    .not('ai_score', 'is', null)
+    .order('updated_at', { ascending: false })
+    .limit(1);
+  
+  if (recentProcessing?.length > 0) {
+    const lastProcessed = new Date(recentProcessing[0].updated_at);
+    const hoursAgo = (Date.now() - lastProcessed.getTime()) / (1000 * 60 * 60);
+    systemHealth.aiService = hoursAgo < 2 ? 'healthy' : hoursAgo < 24 ? 'warning' : 'error';
+  }
+} catch (error) {
+  console.error('Health check failed:', error);
+}
+
+// 格式化数字
+const formatNumber = (num: number) => {
+  if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+  if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+  return num.toString();
+};
+
+// 格式化金额
+const formatCurrency = (amount: number, currency = 'USD') => {
+  if (currency === 'USD') {
+    return '$' + amount.toFixed(6);
+  } else {
+    return '¥' + (amount * 7.2).toFixed(4);
+  }
+};
+
+// 获取状态样式
+const getStatusClass = (status: string) => {
+  switch (status) {
+    case 'healthy': return 'text-green-600 bg-green-100';
+    case 'warning': return 'text-yellow-600 bg-yellow-100';
+    case 'error': return 'text-red-600 bg-red-100';
+    default: return 'text-gray-600 bg-gray-100';
+  }
+};
+
+// 获取状态图标
+const getStatusIcon = (status: string) => {
+  switch (status) {
+    case 'healthy': return '✅';
+    case 'warning': return '⚠️';
+    case 'error': return '❌';
+    default: return '❓';
+  }
+};
+---
+
+<DashboardLayout title="日志和检查 - KUATO">
+  <!-- Page Header -->
+  <div class="mb-6">
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="text-3xl font-bold text-gray-900">日志和检查</h1>
+        <p class="mt-1 text-sm text-gray-500">
+          系统状态监控和AI使用统计
+        </p>
+      </div>
+      <div class="flex items-center space-x-3">
+        <span class="text-sm text-gray-500">最后更新: </span>
+        <span class="text-sm font-medium text-gray-900">{new Date().toLocaleString('zh-CN')}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- System Health Status -->
+  <div class="dashboard-card mb-6">
+    <div class="dashboard-card-header">
+      <h2 class="dashboard-card-title">🏥 系统健康状态</h2>
+    </div>
+    <div class="dashboard-card-body">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Database Status -->
+        <div class="text-center">
+          <div class={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusClass(systemHealth.database)}`}>
+            <span class="mr-1">{getStatusIcon(systemHealth.database)}</span>
+            数据库连接
+          </div>
+          <p class="mt-2 text-sm text-gray-500">Supabase PostgreSQL</p>
+        </div>
+
+        <!-- RSS Feeds Status -->
+        <div class="text-center">
+          <div class={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusClass(systemHealth.rssFeeds)}`}>
+            <span class="mr-1">{getStatusIcon(systemHealth.rssFeeds)}</span>
+            RSS数据源
+          </div>
+          <p class="mt-2 text-sm text-gray-500">43个制造业专业源</p>
+        </div>
+
+        <!-- AI Service Status -->
+        <div class="text-center">
+          <div class={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusClass(systemHealth.aiService)}`}>
+            <span class="mr-1">{getStatusIcon(systemHealth.aiService)}</span>
+            AI分析服务
+          </div>
+          <p class="mt-2 text-sm text-gray-500">Jina AI + Gemini AI</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Monthly Summary -->
+  <div class="dashboard-card mb-6">
+    <div class="dashboard-card-header">
+      <h2 class="dashboard-card-title">📊 本月AI使用概览</h2>
+    </div>
+    <div class="dashboard-card-body">
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+        <div class="text-center">
+          <div class="text-2xl font-bold text-blue-600">{monthlyStats.totalArticles}</div>
+          <div class="text-sm text-gray-500 mt-1">处理文章数</div>
+        </div>
+        <div class="text-center">
+          <div class="text-2xl font-bold text-green-600">{formatNumber(monthlyStats.totalTokens)}</div>
+          <div class="text-sm text-gray-500 mt-1">消耗Token数</div>
+        </div>
+        <div class="text-center">
+          <div class="text-2xl font-bold text-purple-600">{formatCurrency(monthlyStats.totalCost)}</div>
+          <div class="text-sm text-gray-500 mt-1">总费用 (USD)</div>
+        </div>
+        <div class="text-center">
+          <div class="text-2xl font-bold text-orange-600">{formatCurrency(monthlyStats.avgCostPerArticle)}</div>
+          <div class="text-sm text-gray-500 mt-1">每篇平均费用</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Daily Usage Log -->
+  <div class="dashboard-card">
+    <div class="dashboard-card-header">
+      <h2 class="dashboard-card-title">📋 最近7天AI使用日志</h2>
+    </div>
+    <div class="dashboard-card-body">
+      {dailyUsage.length > 0 ? (
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  日期
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  处理文章数
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  输入Token
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  输出Token
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  总Token数
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  费用 (USD)
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  费用 (CNY)
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  每篇平均费用
+                </th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+              {dailyUsage.map((day) => (
+                <tr key={day.date} class="hover:bg-gray-50">
+                  <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    {new Date(day.date).toLocaleDateString('zh-CN')}
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {day.articles_processed || 0}
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {formatNumber(day.input_tokens || 0)}
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {formatNumber(day.output_tokens || 0)}
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
+                    {formatNumber(day.total_tokens || 0)}
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    ${(day.total_cost_usd || 0).toFixed(6)}
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    ¥{(day.total_cost_cny || 0).toFixed(4)}
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    ${(day.avg_cost_per_article_usd || 0).toFixed(6)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div class="text-center py-8">
+          <div class="text-gray-500">
+            <div class="text-4xl mb-4">📊</div>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">暂无使用数据</h3>
+            <p class="text-sm">AI使用统计数据将在系统运行后显示在这里</p>
+          </div>
+        </div>
+      )}
+    </div>
+  </div>
+
+  <!-- Cost Analysis -->
+  {dailyUsage.length > 0 && (
+    <div class="dashboard-card mt-6">
+      <div class="dashboard-card-header">
+        <h2 class="dashboard-card-title">💰 成本分析</h2>
+      </div>
+      <div class="dashboard-card-body">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- Cost Breakdown -->
+          <div>
+            <h3 class="text-lg font-medium text-gray-900 mb-3">费用构成</h3>
+            <div class="space-y-3">
+              <div class="flex justify-between items-center">
+                <span class="text-sm text-gray-600">输入Token费用</span>
+                <span class="text-sm font-medium text-gray-900">
+                  ${dailyUsage.reduce((sum, day) => sum + (parseFloat(day.input_cost_usd || 0)), 0).toFixed(6)}
+                </span>
+              </div>
+              <div class="flex justify-between items-center">
+                <span class="text-sm text-gray-600">输出Token费用</span>
+                <span class="text-sm font-medium text-gray-900">
+                  ${dailyUsage.reduce((sum, day) => sum + (parseFloat(day.output_cost_usd || 0)), 0).toFixed(6)}
+                </span>
+              </div>
+              <div class="border-t pt-3 flex justify-between items-center">
+                <span class="text-sm font-medium text-gray-900">总计</span>
+                <span class="text-sm font-bold text-gray-900">
+                  ${monthlyStats.totalCost.toFixed(6)} (¥{(monthlyStats.totalCost * 7.2).toFixed(4)})
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Efficiency Metrics -->
+          <div>
+            <h3 class="text-lg font-medium text-gray-900 mb-3">效率指标</h3>
+            <div class="space-y-3">
+              <div class="flex justify-between items-center">
+                <span class="text-sm text-gray-600">每篇文章平均Token</span>
+                <span class="text-sm font-medium text-gray-900">
+                  {monthlyStats.totalArticles > 0 ? Math.round(monthlyStats.totalTokens / monthlyStats.totalArticles) : 0}
+                </span>
+              </div>
+              <div class="flex justify-between items-center">
+                <span class="text-sm text-gray-600">每篇文章平均费用</span>
+                <span class="text-sm font-medium text-gray-900">
+                  {formatCurrency(monthlyStats.avgCostPerArticle)}
+                </span>
+              </div>
+              <div class="flex justify-between items-center">
+                <span class="text-sm text-gray-600">每1000Token费用</span>
+                <span class="text-sm font-medium text-gray-900">
+                  ${monthlyStats.totalTokens > 0 ? ((monthlyStats.totalCost * 1000) / (monthlyStats.totalTokens / 1000)).toFixed(6) : '0.000000'}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )}
+
+  <!-- Manual Refresh Button -->
+  <div class="mt-6 text-center">
+    <button 
+      onclick="location.reload()" 
+      class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+    >
+      <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+      </svg>
+      刷新数据
+    </button>
+  </div>
+</DashboardLayout>
+
+<style>
+  /* Custom styles for the logs page */
+  .dashboard-card {
+    @apply bg-white rounded-lg shadow-sm border border-gray-200;
+  }
+
+  .dashboard-card-header {
+    @apply px-6 py-4 border-b border-gray-200;
+  }
+
+  .dashboard-card-title {
+    @apply text-lg font-medium text-gray-900;
+  }
+
+  .dashboard-card-body {
+    @apply p-6;
+  }
+
+  /* Table hover effects */
+  tbody tr:hover {
+    @apply bg-gray-50;
+  }
+
+  /* Responsive adjustments */
+  @media (max-width: 640px) {
+    .dashboard-card-body {
+      @apply p-4;
+    }
+    
+    table {
+      @apply text-xs;
+    }
+    
+    th, td {
+      @apply px-2 py-2;
+    }
+  }
+</style>

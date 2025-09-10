@@ -38,7 +38,7 @@ export interface Article {
   ai_strategic_implication?: string // 战略意义分析
   
   // 综合状态
-  overall_status: 'draft' | 'processing' | 'ready_for_review' | 'reviewed' | 'published' | 'adopted' | 'archived' | 'ignored'
+  overall_status: 'draft' | 'processing' | 'ready_for_review' | 'auto_rejected' | 'published' | 'adopted' | 'archived' | 'ignored'
   editor_notes?: string
   edited_title?: string
   edited_content?: string
@@ -139,8 +139,8 @@ export const getArticles = async (filters: {
   if (filters.status) {
     query = query.eq('overall_status', filters.status)
   } else {
-    // 文章池默认只显示待处理的文章：ready_for_review 和 reviewed
-    query = query.in('overall_status', ['ready_for_review', 'reviewed'])
+    // 文章池默认只显示待处理的文章：ready_for_review 和 auto_rejected
+    query = query.in('overall_status', ['ready_for_review', 'auto_rejected'])
   }
   
   if (filters.category) {

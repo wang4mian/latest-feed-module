@@ -157,8 +157,8 @@ const generatePageUrl = (pageNum: number) => {
         <div class="min-w-40">
           <select name="status" class="block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
             <option value="">待处理文章</option>
-            <option value="ready_for_review" selected={status === 'ready_for_review'}>待审核</option>
-            <option value="reviewed" selected={status === 'reviewed'}>已审核</option>
+            <option value="ready_for_review" selected={status === 'ready_for_review'}>待审核 (≥50分)</option>
+            <option value="auto_rejected" selected={status === 'auto_rejected'}>AI过滤 (<50分)</option>
             <option value="adopted" selected={status === 'adopted'}>已采用</option>
             <option value="archived" selected={status === 'archived'}>已归档</option>
             <option value="draft" selected={status === 'draft'}>草稿</option>

@@ -107,7 +107,7 @@ serve(async (req) => {
             ai_category: aiAnalysis.primary_category,
             ai_summary: aiAnalysis.summary_for_editor,
             ai_strategic_implication: aiAnalysis.strategic_implication,
-            overall_status: aiAnalysis.relevance_score >= 50 ? 'ready_for_review' : 'reviewed',
+            overall_status: aiAnalysis.relevance_score >= 50 ? 'ready_for_review' : 'auto_rejected',
             updated_at: new Date().toISOString()
           })
           .eq('id', article.id)

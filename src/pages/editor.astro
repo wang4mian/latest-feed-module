@@ -180,7 +180,7 @@ const getScoreColor = (score: number) => {
       
       <!-- Editor Header -->
       <div class="p-4 border-b border-gray-200">
-        <div class="flex items-center justify-between">
+        <div class="flex items-center justify-between mb-3">
           <div class="flex items-center text-gray-700">
             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -200,6 +200,37 @@ const getScoreColor = (score: number) => {
               </svg>
               新窗口打开
             </a>
+          </div>
+        </div>
+        
+        <!-- Template Selector -->
+        <div class="space-y-3">
+          <div class="flex items-center space-x-3">
+            <label class="text-sm font-medium text-gray-700">选择模板:</label>
+            <select id="template-selector" class="text-sm border border-gray-300 rounded-md px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+              <option value="intelligence" selected>🧠 制造业情报分析 (推荐)</option>
+              <optgroup label="📱 微信公众号模板">
+                <option value="wechat-template1">模板1 (KUATO制造业情报)</option>
+                <!-- <option value="wechat-template2">模板2 (待配置)</option> -->
+                <!-- <option value="wechat-template3">模板3 (待配置)</option> -->
+              </optgroup>
+              <optgroup label="📋 分析报告模板">
+                <option value="benchmark">🎯 中外对标分析</option>
+                <option value="technology">🔬 技术创新跟踪</option>
+                <option value="market">📈 市场动态分析</option>
+                <option value="basic">📄 基础信息整理</option>
+              </optgroup>
+            </select>
+            <button id="preview-template" class="text-xs px-2 py-1 bg-blue-50 text-blue-600 rounded border border-blue-200 hover:bg-blue-100">
+              预览模板
+            </button>
+            <span class="text-xs text-gray-500">选择模板后点击"使用文章"生成内容</span>
+          </div>
+          
+          
+          <!-- Template Info -->
+          <div id="template-info" class="text-xs text-gray-600 bg-blue-50 p-2 rounded" style="display: none;">
+            <span id="template-info-content"></span>
           </div>
         </div>
       </div>
@@ -241,8 +272,348 @@ const getScoreColor = (score: number) => {
 </DashboardLayout>
 
 <script>
-  // 生成 Markdown 内容的函数
-  function generateMarkdownContent(article: any) {
+  // 获取当前选择的模板
+  function getSelectedTemplate(): string {
+    const selector = document.getElementById('template-selector') as HTMLSelectElement;
+    return selector ? selector.value : 'basic';
+  }
+
+  // 制造业情报分析模板 - 专业报告格式
+  function generateIntelligenceTemplate(article: any): string {
+    const date = new Date(article.created_at).toLocaleDateString('zh-CN');
+    const reportDate = new Date().toLocaleDateString('zh-CN');
+    
+    return `# **智能制造行业研究**
+
+## **${article.title}**
+
+---
+
+**发布机构**: KUATO制造业情报系统  
+**报告日期**: ${reportDate}  
+**信息来源**: ${article.rss_sources?.name || '未知'}  
+**AI评分**: ${article.ai_score || 'N/A'}/100  
+
+---
+
+### **一、事件概述**
+
+${article.ai_summary || '[ 请补充事件概述 ]'}
+
+### **二、核心观点解读**
+
+**2.1 技术亮点**
+- 核心创新: [ 待分析 ]
+- 技术突破: [ 待分析 ]
+- 应用价值: [ 待分析 ]
+
+**2.2 市场影响**
+- 市场规模: [ 待分析 ]
+- 竞争格局: [ 待分析 ]
+- 发展趋势: [ 待分析 ]
+
+### **三、深度分析**
+
+**3.1 国外案例研究**
+
+${article.full_content || article.description || '[ 请补充国外案例详情 ]'}
+
+**3.2 中国对标企业**
+
+| 企业名称 | 技术水平 | 市场地位 | 竞争优势 |
+|----------|----------|----------|----------|
+| [ 企业A ] | [ 评估 ] | [ 地位 ] | [ 优势 ] |
+| [ 企业B ] | [ 评估 ] | [ 地位 ] | [ 优势 ] |
+| [ 企业C ] | [ 评估 ] | [ 地位 ] | [ 优势 ] |
+
+### **四、战略意义评估**
+
+${article.ai_strategic_implication || '[ 请补充战略意义分析 ]'}
+
+**投资价值评估**:
+- **技术创新**: ⭐⭐⭐⭐⭐
+- **市场前景**: ⭐⭐⭐⭐⭐  
+- **政策支持**: ⭐⭐⭐⭐⭐
+- **风险控制**: ⭐⭐⭐⭐⭐
+
+### **五、行业洞察与建议**
+
+**5.1 行业发展趋势**
+1. [ 趋势一 ]
+2. [ 趋势二 ]
+3. [ 趋势三 ]
+
+**5.2 投资机会分析**
+- **短期机会** (6个月内): [ 具体机会 ]
+- **中期布局** (1-2年): [ 具体方向 ]
+- **长期战略** (3-5年): [ 战略重点 ]
+
+**5.3 风险提示**
+- 技术风险: [ 风险分析 ]
+- 市场风险: [ 风险分析 ]
+- 政策风险: [ 风险分析 ]
+
+---
+
+### **六、结论与建议**
+
+**核心结论**: [ 请基于以上分析得出核心结论 ]
+
+**行动建议**:
+1. **立即行动**: [ 具体建议 ]
+2. **密切关注**: [ 关注重点 ]
+3. **长期布局**: [ 布局方向 ]
+
+---
+
+**报告声明**: 本报告基于公开信息和AI智能分析，仅供参考。投资决策请结合具体情况谨慎考虑。
+
+**数据来源**: ${article.link}  
+**分析师**: KUATO AI智能分析系统  
+**报告编号**: ${article.id?.substring(0, 8) || 'N/A'}`;
+  }
+
+  // 技术创新跟踪模板
+  function generateTechnologyTemplate(article: any): string {
+    const date = new Date(article.created_at).toLocaleDateString('zh-CN');
+    
+    return `# 🔬 技术创新跟踪报告
+
+## ${article.title}
+
+---
+
+### 🆕 技术亮点
+
+${article.ai_summary || ''}
+
+### 🏭 技术分类
+- **领域**: ${article.ai_category || '待分类'}
+- **创新度**: ${article.ai_score || 'N/A'}/100
+- **成熟度**: [ 实验室阶段 / 产品化 / 规模应用 ]
+
+### 🔧 技术详解
+
+${article.full_content || article.description || ''}
+
+### 📊 技术评估
+
+| 维度 | 评级 | 说明 |
+|------|------|------|
+| **技术突破性** | ⭐⭐⭐⭐⭐ | [ 评估说明 ] |
+| **商业化潜力** | ⭐⭐⭐⭐⭐ | [ 评估说明 ] |
+| **竞争优势** | ⭐⭐⭐⭐⭐ | [ 评估说明 ] |
+| **投资价值** | ⭐⭐⭐⭐⭐ | [ 评估说明 ] |
+
+### 🎯 应用前景
+
+**潜在应用场景**：
+- [ 场景1 ]
+- [ 场景2 ]
+- [ 场景3 ]
+
+**市场预期**：
+${article.ai_strategic_implication || '[ 待分析 ]'}
+
+### 🔗 相关技术
+
+- [ 相关技术1 ]
+- [ 相关技术2 ]  
+- [ 相关技术3 ]
+
+---
+
+**数据来源**: ${article.rss_sources?.name || '未知'} | ${date}`;
+  }
+
+  // 市场动态分析模板
+  function generateMarketTemplate(article: any): string {
+    const date = new Date(article.created_at).toLocaleDateString('zh-CN');
+    
+    return `# 📈 市场动态分析
+
+## ${article.title}
+
+---
+
+### 📊 市场概况
+
+${article.ai_summary || ''}
+
+### 💰 市场数据
+
+| 指标 | 数值 | 备注 |
+|------|------|------|
+| **市场规模** | [ 待填入 ] | [ 说明 ] |
+| **增长率** | [ 待填入 ] | [ 说明 ] |
+| **主要玩家** | [ 待填入 ] | [ 说明 ] |
+
+### 🌊 市场趋势
+
+${article.ai_strategic_implication || ''}
+
+### 🏢 关键企业动态
+
+${article.full_content || article.description || ''}
+
+### 📋 SWOT分析
+
+| 优势 (Strengths) | 劣势 (Weaknesses) |
+|------------------|-------------------|
+| • [ 优势1 ] | • [ 劣势1 ] |
+| • [ 优势2 ] | • [ 劣势2 ] |
+
+| 机会 (Opportunities) | 威胁 (Threats) |
+|---------------------|----------------|
+| • [ 机会1 ] | • [ 威胁1 ] |
+| • [ 机会2 ] | • [ 威胁2 ] |
+
+### 🎯 投资建议
+
+**短期** (1-6个月):
+- [ 建议1 ]
+
+**中期** (6-18个月):  
+- [ 建议2 ]
+
+**长期** (2-5年):
+- [ 建议3 ]
+
+---
+
+**分析师**: KUATO AI | **报告日期**: ${date}`;
+  }
+
+  // 中外对标分析模板 - 专业对标报告格式
+  function generateBenchmarkTemplate(article: any): string {
+    const date = new Date(article.created_at).toLocaleDateString('zh-CN');
+    const reportDate = new Date().toLocaleDateString('zh-CN');
+    
+    return `# **中外制造业对标研究报告**
+
+## **${article.title}**
+
+---
+
+**发布机构**: KUATO制造业情报系统  
+**报告日期**: ${reportDate}  
+**对标领域**: ${article.ai_category || '综合制造'}  
+**分析评分**: ${article.ai_score || 'N/A'}/100  
+
+---
+
+### **执行摘要**
+
+${article.ai_summary || '[ 请补充执行摘要 ]'}
+
+---
+
+### **一、国外标杆案例**
+
+**1.1 案例概述**
+
+${article.full_content || article.description || '[ 请补充国外案例详情 ]'}
+
+**1.2 核心竞争力分析**
+- **技术优势**: [ 分析技术领先性 ]
+- **市场地位**: [ 分析市场占有率和影响力 ]  
+- **商业模式**: [ 分析盈利模式和价值链 ]
+- **创新能力**: [ 分析研发投入和创新机制 ]
+
+### **二、中国企业对标分析**
+
+**2.1 对标企业概览**
+
+| 中国企业 | 业务领域 | 市场地位 | 技术水平 | 发展阶段 |
+|----------|----------|----------|----------|----------|
+| [ 企业A ] | [ 领域 ] | [ 地位 ] | [ 水平 ] | [ 阶段 ] |
+| [ 企业B ] | [ 领域 ] | [ 地位 ] | [ 水平 ] | [ 阶段 ] |
+| [ 企业C ] | [ 领域 ] | [ 地位 ] | [ 水平 ] | [ 阶段 ] |
+
+**2.2 核心差距分析**
+
+| 对比维度 | 国外标杆 | 中国企业 | 差距程度 | 追赶难度 |
+|----------|----------|----------|----------|----------|
+| **技术研发** | [ 评估 ] | [ 评估 ] | [ 差距 ] | [ 难度 ] |
+| **市场规模** | [ 评估 ] | [ 评估 ] | [ 差距 ] | [ 难度 ] |
+| **资本实力** | [ 评估 ] | [ 评估 ] | [ 差距 ] | [ 难度 ] |
+| **人才储备** | [ 评估 ] | [ 评估 ] | [ 差距 ] | [ 难度 ] |
+| **产业生态** | [ 评估 ] | [ 评估 ] | [ 差距 ] | [ 难度 ] |
+
+### **三、竞争态势与趋势**
+
+**3.1 全球竞争格局**
+
+${article.ai_strategic_implication || '[ 请补充竞争态势分析 ]'}
+
+**3.2 发展趋势预判**
+1. **技术发展趋势**: [ 趋势分析 ]
+2. **市场演变趋势**: [ 趋势分析 ]
+3. **政策环境趋势**: [ 趋势分析 ]
+
+### **四、政策环境对比**
+
+**4.1 国外政策支持**
+- 研发扶持: [ 政策内容 ]
+- 产业引导: [ 政策内容 ]
+- 市场保护: [ 政策内容 ]
+
+**4.2 中国政策机遇**
+- 国家战略: [ 政策机遇 ]
+- 产业政策: [ 政策机遇 ]
+- 区域优势: [ 政策机遇 ]
+
+### **五、追赶策略建议**
+
+**5.1 技术突破路径**
+1. **短期** (1年内): [ 具体策略 ]
+2. **中期** (2-3年): [ 具体策略 ]
+3. **长期** (5年内): [ 具体策略 ]
+
+**5.2 市场突破策略**
+- **国内市场**: [ 策略建议 ]
+- **海外拓展**: [ 策略建议 ]
+- **细分领域**: [ 策略建议 ]
+
+**5.3 生态建设方案**
+- **产业链整合**: [ 建设方案 ]
+- **创新平台**: [ 建设方案 ]
+- **人才培养**: [ 建设方案 ]
+
+### **六、投资机会与风险**
+
+**6.1 投资机会**
+- **技术投资**: [ 机会分析 ]
+- **产业投资**: [ 机会分析 ]
+- **并购整合**: [ 机会分析 ]
+
+**6.2 风险提示**
+- **技术风险**: [ 风险分析 ]
+- **市场风险**: [ 风险分析 ]
+- **政策风险**: [ 风险分析 ]
+
+---
+
+### **结论与建议**
+
+**核心结论**: [ 基于对标分析的核心结论 ]
+
+**战略建议**:
+1. **优先发展**: [ 重点领域 ]
+2. **重点突破**: [ 关键技术 ]
+3. **合作共赢**: [ 合作方向 ]
+
+---
+
+**免责声明**: 本报告基于公开信息整理分析，观点仅供参考，不构成投资建议。
+
+**数据来源**: ${article.link}  
+**研究团队**: KUATO制造业研究院  
+**报告编号**: ${article.id?.substring(0, 8) || 'N/A'}`;
+  }
+
+  // 基础信息整理模板
+  function generateBasicTemplate(article: any): string {
     const date = new Date(article.created_at).toLocaleDateString('zh-CN');
     
     let content = `# ${article.title}\n\n`;
@@ -270,11 +641,6 @@ const getScoreColor = (score: number) => {
       content += `## 战略意义\n\n${article.ai_strategic_implication}\n\n`;
     }
     
-    // 添加原始描述
-    if (article.description) {
-      content += `## 原始摘要\n\n${article.description}\n\n`;
-    }
-    
     // 添加完整内容（如果有）
     if (article.full_content) {
       content += `## 完整内容\n\n${article.full_content}\n\n`;
@@ -284,6 +650,225 @@ const getScoreColor = (score: number) => {
     content += `*此内容由制造业情报系统自动生成，基于文章: "${article.title}"*\n`;
     
     return content;
+  }
+
+  // 微信公众号模板配置
+  const WECHAT_TEMPLATES = {
+    'template1': {
+      name: 'KUATO制造业情报',
+      headerImage: 'https://mmbiz.qpic.cn/mmbiz_gif/zs1lfia1tiaJ4DuZdRCIkpgCNTHKef8yXgib4mT253dp7icWkOoxVRmx6e67IEf7BCCJSKLOlefkxs6gbtHklZuxjw/640?wx_fmt=gif&from=appmsg',
+      footerImages: [
+        'https://mmbiz.qpic.cn/mmbiz_png/zs1lfia1tiaJ4DuZdRCIkpgCNTHKef8yXgjwLADrFZm9aibicOgqOibyuWpQ5BsYU4n8KVqvhibe0adwEFFU2qGtbL8Q/640?wx_fmt=png&from=appmsg&watermark=1',
+        'https://mmbiz.qpic.cn/mmbiz_png/zs1lfia1tiaJ4DuZdRCIkpgCNTHKef8yXgibtyNJJT0BticIXcicn421AgT8qGy7a6nDm57LTWA4W8WHnScRaI7Q9kA/640?wx_fmt=png&from=appmsg&watermark=1'
+      ],
+      brandName: 'KUATO制造业情报系统',
+      description: '专注制造业情报分析'
+    }
+    // 未来可以添加更多模板
+    // 'template2': { ... }
+  };
+
+  // 微信公众号模板1生成函数
+  function generateWechatTemplate1(article: any): string {
+    const date = new Date(article.created_at).toLocaleDateString('zh-CN');
+    const template = WECHAT_TEMPLATES.template1;
+    
+    // 直接使用模板配置的题图
+    const headerImageUrl = template.headerImage;
+    
+    return `<style>
+/* 微信公众号样式 */
+.rich_media_content {
+  max-width: 677px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family: -apple-system-font, BlinkMacSystemFont, "Helvetica Neue", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei UI", "Microsoft YaHei", Arial, sans-serif;
+  line-height: 1.6;
+  color: #333;
+  background-color: #fff;
+}
+
+.rich_media_title {
+  font-size: 24px;
+  font-weight: bold;
+  line-height: 1.4;
+  margin-bottom: 20px;
+  text-align: center;
+  color: #000;
+}
+
+.rich_media_meta {
+  text-align: center;
+  font-size: 14px;
+  color: #888;
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #eee;
+}
+
+.rich_media_para {
+  margin-bottom: 20px;
+  font-size: 16px;
+  text-align: justify;
+}
+
+.rich_media_strong {
+  font-weight: bold;
+  color: #000;
+}
+
+.rich_media_quote {
+  padding: 15px 20px;
+  margin: 20px 0;
+  background-color: #f7f7f7;
+  border-left: 4px solid #07c160;
+  font-style: italic;
+}
+
+.rich_media_section {
+  margin: 30px 0;
+}
+
+.rich_media_section_title {
+  font-size: 18px;
+  font-weight: bold;
+  margin: 25px 0 15px 0;
+  color: #000;
+}
+
+.rich_media_highlight {
+  background-color: #fff2cc;
+  padding: 2px 4px;
+  border-radius: 3px;
+}
+
+.rich_media_header_image {
+  width: 100%;
+  max-width: 677px;
+  height: 300px;
+  object-fit: cover;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.rich_media_footer {
+  margin-top: 40px;
+  padding-top: 20px;
+  border-top: 1px solid #eee;
+  text-align: center;
+  font-size: 12px;
+  color: #999;
+}
+
+.rich_media_footer_images {
+  margin-top: 30px;
+  text-align: center;
+}
+
+.rich_media_footer_image {
+  width: 100%;
+  max-width: 677px;
+  margin: 10px 0;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+</style>
+
+<div class="rich_media_content">
+
+<img src="${headerImageUrl}" alt="${article.title}" class="rich_media_header_image" />
+
+<h1 class="rich_media_title">${article.title}</h1>
+
+<div class="rich_media_meta">
+<strong>${template.brandName}</strong> | ${date}<br>
+来源：${article.rss_sources?.name || '未知'} | AI评分：${article.ai_score || 'N/A'}/100
+</div>
+
+<div class="rich_media_section">
+<h2 class="rich_media_section_title">📊 核心观点</h2>
+<div class="rich_media_para">
+${article.ai_summary || ''}
+</div>
+</div>
+
+${article.ai_strategic_implication ? `
+<div class="rich_media_quote">
+<strong>战略价值：</strong>${article.ai_strategic_implication}
+</div>
+` : ''}
+
+<div class="rich_media_section">
+<h2 class="rich_media_section_title">🔍 深度解读</h2>
+<div class="rich_media_para">
+${article.full_content || article.description || ''}
+</div>
+</div>
+
+<div class="rich_media_section">
+<h2 class="rich_media_section_title">💡 行业洞察</h2>
+<div class="rich_media_para">
+这一动态对制造业的启示：
+</div>
+<div class="rich_media_para">
+• <span class="rich_media_strong">技术趋势</span>：[ 请补充技术发展趋势分析 ]
+</div>
+<div class="rich_media_para">
+• <span class="rich_media_strong">市场机会</span>：[ 请补充市场机会分析 ]
+</div>
+<div class="rich_media_para">
+• <span class="rich_media_strong">投资方向</span>：[ 请补充投资建议 ]
+</div>
+</div>
+
+<div class="rich_media_section">
+<h2 class="rich_media_section_title">🎯 关键要点</h2>
+<div class="rich_media_para">
+<span class="rich_media_highlight">核心技术</span>：[ 请提炼核心技术要点 ]
+</div>
+<div class="rich_media_para">
+<span class="rich_media_highlight">应用场景</span>：[ 请分析主要应用场景 ]
+</div>
+<div class="rich_media_para">
+<span class="rich_media_highlight">发展前景</span>：[ 请评估发展前景 ]
+</div>
+</div>
+
+<div class="rich_media_footer">
+<p>📖 更多制造业情报，关注 <strong>${template.brandName}</strong></p>
+<p>🔗 原文链接：<a href="${article.link}" target="_blank">点击查看</a></p>
+<p>⚡ 本文由AI智能分析生成，仅供参考</p>
+</div>
+
+<!-- 结尾图片 -->
+<div class="rich_media_footer_images">
+<img src="${template.footerImages[0]}" alt="${template.name} 关注二维码" class="rich_media_footer_image" />
+<img src="${template.footerImages[1]}" alt="${template.name} 推广图" class="rich_media_footer_image" />
+</div>
+
+</div>`;
+  }
+
+  // 主生成函数 - 根据选择的模板生成内容
+  function generateMarkdownContent(article: any): string {
+    const template = getSelectedTemplate();
+    
+    switch (template) {
+      case 'intelligence':
+        return generateIntelligenceTemplate(article);
+      case 'wechat-template1':
+        return generateWechatTemplate1(article);
+      case 'technology':
+        return generateTechnologyTemplate(article);
+      case 'market':
+        return generateMarketTemplate(article);
+      case 'benchmark':
+        return generateBenchmarkTemplate(article);
+      case 'basic':
+      default:
+        return generateBasicTemplate(article);
+    }
   }
 
   // 插入内容到 Doocs MD 编辑器的函数
@@ -349,6 +934,62 @@ const getScoreColor = (score: number) => {
         }
       }
     });
+
+    // 模板预览按钮
+    document.getElementById('preview-template')?.addEventListener('click', function() {
+      const template = getSelectedTemplate();
+      
+      // 创建模拟文章数据用于预览
+      const mockArticle = {
+        title: "示例文章标题 - 智能制造技术突破",
+        ai_summary: "这是一个AI生成的摘要示例，展示了文章的核心内容和主要观点。",
+        ai_strategic_implication: "这项技术对制造业具有重要的战略意义，可能改变行业格局。",
+        ai_category: "Core Equipment",
+        ai_score: 85,
+        created_at: new Date().toISOString(),
+        link: "https://example.com/article",
+        full_content: "这里是文章的完整内容示例...",
+        description: "文章描述示例",
+        id: "preview-123",
+        rss_sources: { name: "示例来源" }
+      };
+      
+      // 生成预览内容
+      const previewContent = generateMarkdownContent(mockArticle);
+      
+      // 插入预览内容到编辑器
+      const success = insertContentToEditor(previewContent);
+      
+      if (success) {
+        showNotification('✅ 模板预览已加载到编辑器', 'success');
+      } else {
+        showNotification('❌ 预览加载失败，请刷新页面重试', 'error');
+      }
+    });
+
+    // 模板选择器变化事件 - 显示模板信息
+    document.getElementById('template-selector')?.addEventListener('change', function(e) {
+      const selectedTemplate = (e.target as HTMLSelectElement).value;
+      const templateInfo = document.getElementById('template-info');
+      const templateInfoContent = document.getElementById('template-info-content');
+      
+      // 检查是否是微信公众号模板
+      if (selectedTemplate.startsWith('wechat-')) {
+        templateInfo!.style.display = 'block';
+        
+        // 显示模板信息
+        if (selectedTemplate === 'wechat-template1') {
+          const template = WECHAT_TEMPLATES.template1;
+          templateInfoContent!.innerHTML = `
+            📱 <strong>${template.name}</strong> | ${template.description}<br>
+            📸 包含：固定题图 + 内容结构 + 结尾两张图片 | 🎨 微信公众号标准样式
+          `;
+        }
+      } else {
+        templateInfo!.style.display = 'none';
+      }
+    });
+
     
     // iframe 加载完成事件
     doocsIframe?.addEventListener('load', function() {

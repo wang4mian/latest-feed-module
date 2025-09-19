@@ -105,8 +105,10 @@ serve(async (req) => {
             ai_score: aiAnalysis.relevance_score,
             ai_reason: aiAnalysis.relevance_reason,
             ai_category: aiAnalysis.primary_category,
-            ai_summary: aiAnalysis.summary_for_editor,
+            ai_summary: aiAnalysis.summary_for_editor || aiAnalysis.compiled_briefing, // 编辑摘要作为主要摘要
             ai_strategic_implication: aiAnalysis.strategic_implication,
+            // 将完整快讯存储在编辑备注字段中，供编辑工作台使用
+            editor_notes: aiAnalysis.compiled_briefing ? `[AI生成快讯]\n${aiAnalysis.compiled_briefing}` : null,
             overall_status: aiAnalysis.relevance_score >= 50 ? 'ready_for_review' : 'auto_rejected',
             updated_at: new Date().toISOString()
           })
@@ -217,19 +219,31 @@ async function extractFullContent(url: string, description: string = ''): Promis
   // Strategy 2: Try Jina AI Reader as fallback
   try {
     console.log('🔄 Fallback: Trying Jina AI Reader...')
-    const jinaResponse = await fetch(`https://r.jina.ai/${url}`, {
+    const jinaUrl = `https://r.jina.ai/${encodeURIComponent(url)}`
+    
+    const jinaResponse = await fetch(jinaUrl, {
+      method: 'GET',
       headers: {
         'Accept': 'application/json',
-        'X-Return-Format': 'markdown'
+        'User-Agent': 'KUATO-Intelligence/1.0'
       }
     })
 
     if (jinaResponse.ok) {
-      const jinaResult = await jinaResponse.text()
-      if (jinaResult && jinaResult.length > 100) {
-        console.log(`✅ Jina AI success: ${jinaResult.length} characters extracted`)
-        return jinaResult
+      const jinaData = await jinaResponse.json()
+      
+      if (jinaData.code === 200 && jinaData.data && jinaData.data.content) {
+        const content = jinaData.data.content
+        if (content && content.length > 100) {
+          console.log(`✅ Jina AI success: ${content.length} characters extracted`)
+          console.log(`📄 Title: ${jinaData.data.title || 'No title'}`)
+          return content
+        }
+      } else {
+        console.warn(`⚠️ Jina AI returned code ${jinaData.code}: ${jinaData.status}`)
       }
+    } else {
+      console.error(`❌ Jina AI HTTP error: ${jinaResponse.status} ${jinaResponse.statusText}`)
     }
   } catch (error) {
     console.error('❌ Jina AI fallback failed:', error.message)
@@ -278,43 +292,74 @@ async function analyzeWithGemini(article: ArticleForAnalysis, fullContent: strin
   }
 
   const analysisPrompt = `
-# [SECTION 1: CONTEXT & ROLE]
-You are a senior industry analyst specializing in the field of **${article.topic_for_ai}**. Your task is to evaluate the following article based on its relevance, business value, and strategic importance *specifically for the **${article.topic_for_ai}** industry*.
+# 一、 核心使命与定位
+你的身份是名为「增材制造狗」的产业媒体AI助手。我们的品牌定位是一个**"根基扎实、迭代稳快的知识结构"**，面向未来的决策者（企业家、投资者、技术负责人）。你的核心使命是：从全球技术噪音中，选择并解码那些真正能引发行业变革的"信号"，为用户提供最高品味的"结构化洞察"，帮助他们以最高效率认知世界，稳快执行。
 
-# [SECTION 2: CORE TASK - ANALYSIS & EVALUATION]
-Analyze the provided article and output your findings in a strict JSON format.
+# 二、 核心任务：生成【快讯】
+你的主要任务是根据提供的信源链接，生成符合以下严格规范的【快讯】文章。
 
-## JSON OUTPUT SPECIFICATION:
+# 三、 格式规范 (Strict Format Rules)
+每一篇【快讯】都必须严格遵循以下结构和格式，不得有任何偏差。
+
+标题 (Title):
+格式必须为： 【增材制造狗】- [两字系列] - [文章标题]
+[两字系列]: 这是对内容的分类，例如：应用、商业、科研、生态、医疗、建筑、军政、产品、材料等。
+[文章标题]: 必须精炼、准确、并具有吸引力，概括新闻核心。
+
+信源行 (Source Line):
+格式必须为： 信源：[Source Name] | 编译：增材制造狗
+[Source Name]: 填写原始新闻来源的媒体名称。
+
+正文 (Body Text) - "三段式"结构:
+正文必须由三个自然段落组成。
+段落之间必须用一个空行隔开。不得使用任何其他分隔符。
+不得在段落前添加"导语"、"核心内容"、"简评"等任何标签。
+
+第一段 (导语):
+功能： 事实陈述与引子。用一到两句话，清晰、准确地概括新闻的核心事件（谁，做了什么，导致了什么）。
+风格： 客观、直接，快速切入主题。
+
+第二段 (核心内容):
+功能： 细节与背景。提供关于该新闻事件的更多关键细节、数据或背景信息，解释其"如何发生"以及"具体内容是什么"。
+风格： 信息密集，逻辑清晰。
+
+第三段 (简评):
+功能： 洞察与解读。这是体现我们价值的核心。分析这则新闻的意义，解读它是一个什么样的"信号"，它将对行业产生什么影响，或者它为中国的从业者带来什么启示。
+风格： 精炼、敏锐、有观点。
+
+原始信源链接 (Original Source Link):
+格式必须为： 在全文的最后，另起一行，以原始信源链接：开头，并在下一行附上完整的URL。
+
+# 四、 工作输出
+请严格按照JSON格式输出分析结果：
+
 {
-  "relevance_score": <An integer from 0-100, calculated based on the scoring rubric below>,
-  "relevance_reason": "<A concise, one-sentence explanation for the score>",
-  "primary_category": "<Choose the most fitting category from: 'Core Equipment', 'Supply Chain', 'Market Trends', 'Technological Innovation', 'Business Models'>",
+  "relevance_score": <0-100评分，增材制造相关度评分>,
+  "relevance_reason": "<简洁的评分理由>",
+  "primary_category": "<两字系列分类，选择：应用、商业、科研、生态、医疗、建筑、军政、产品、材料、汽车>",
   "entities": {
-    "companies": ["<List of company names mentioned>"],
-    "technologies": ["<List of technology names mentioned>"],
-    "people": ["<List of key individuals mentioned>"]
+    "companies": ["<3D打印/增材制造相关公司名称>"],
+    "technologies": ["<增材制造技术名称：FDM、SLA、SLS、金属3D打印等>"],
+    "people": ["<关键人物名称>"]
   },
-  "summary_for_editor": "<A 200-word summary in Chinese, written for an editor. It must highlight the core insights and actionable information relevant to the **${article.topic_for_ai}** industry.>",
-  "strategic_implication": "<A short analysis (in Chinese) of what this news *means*. Is it an opportunity, a threat, a signal of a new trend, or just noise?>"
+  "compiled_briefing": "<完整的三段式快讯内容，包含标题、信源行、三个段落、原始链接，严格按照格式规范>",
+  "summary_for_editor": "<200字中文摘要，作为编辑参考>",
+  "strategic_implication": "<这则新闻对中国增材制造行业的战略意义分析>"
 }
 
-# [SECTION 3: SCORING RUBRIC & DEFINITIONS]
-## Base Score based on Article Type (max 50 points):
-- Direct discussion of **${article.topic_for_ai}** products or companies: 50 points.
-- Discussion of adjacent technologies or supply chain for **${article.topic_for_ai}**: 40 points.
-- Discussion of market trends or business models impacting **${article.topic_for_ai}**: 30 points.
-- Macroeconomic or general technology news with indirect relevance: 10 points.
-- Not relevant: 0 points.
+**评分标准**：
+- 直接增材制造新闻（设备、技术、应用）：60-80分
+- 相关制造技术或材料：40-60分  
+- 间接相关或一般制造业：20-40分
+- 无关内容：0-20分
 
-## Bonus Multipliers (applied to the base score):
-- **Actionable Signal Multiplier (max 1.5x)**: Multiply by 1.5 if the article contains strong business signals like funding, M&A, financial reports, specific sales data, or customer case studies. Multiply by 1.0 otherwise.
-- **Future-Facing Multiplier (max 1.2x)**: Multiply by 1.2 if the article discusses a future trend, a new patent, or a breakthrough innovation. Multiply by 1.0 otherwise.
+# 五、文章信息
+- **文章标题**: ${article.title}
+- **文章描述**: ${article.description}
+- **文章内容**: ${fullContent || '(No full content available)'}
+- **来源链接**: ${article.link}
 
-# [SECTION 4: ARTICLE FOR ANALYSIS]
-- **Article Topic**: ${article.topic_for_ai}
-- **Article Title**: ${article.title}
-- **Article Description**: ${article.description}
-- **Article Content**: ${fullContent || '(No full content available)'}
+请为这篇文章生成一份完整的快讯，严格遵循三段式格式要求。
 `
 
   const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${geminiKey}`, {

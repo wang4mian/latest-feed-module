@@ -15,10 +15,11 @@
     "@astrojs/tailwind": "^5.1.0",
     "@astrojs/vercel": "^8.2.6",
     "@supabase/supabase-js": "^2.38.0",
-    "astro": "^5.13.4",
     "aos": "^2.3.4",
+    "astro": "^5.13.4",
     "date-fns": "^4.1.0",
     "dotenv": "^17.2.1",
+    "marked": "^16.3.0",
     "motion": "^12.5.0",
     "smoothscroll-for-websites": "^1.5.1",
     "tailwindcss": "^3.4.1"

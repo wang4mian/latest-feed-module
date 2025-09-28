@@ -18,5 +18,8 @@ COMMENT ON COLUMN articles.ai_tags IS 'AI生成的自由标签数组，支持技
 -- ALTER TABLE articles DROP COLUMN ai_category;
 -- ALTER TABLE articles DROP COLUMN ai_strategic_implication;
 
--- 查看更新后的表结构
-\d articles;
+-- 查看更新后的表结构（在Supabase SQL Editor中可以使用）
+SELECT column_name, data_type, is_nullable, column_default 
+FROM information_schema.columns 
+WHERE table_name = 'articles' 
+AND column_name = 'ai_tags';

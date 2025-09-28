@@ -1,0 +1,39 @@
+{
+  "name": "增材制造狗样式",
+  "description": "增材制造狗公众号专用样式配置，荧光黄绿主题，适合3D打印和增材制造内容",
+  "category": "manufacturing",
+  "brandImages": {
+    "header": "https://mmbiz.qpic.cn/mmbiz_gif/zs1lfia1tiaJ6AhwiaFm9082XtcGrx6ctyhAKVhTZnnRMeTVjTFJ3Fsj7ztJdIQ2Upja1bHXibQ9cX2P3HvZLwDn4A/640?wx_fmt=gif&from=appmsg",
+    "footer1": "https://mmbiz.qpic.cn/mmbiz_png/zs1lfia1tiaJ6AhwiaFm9082XtcGrx6ctyhyxmuND2PYr8PjpHqWRyBbUK3FyaryA7vVb65NOv7gZiaM5KojD1iag6w/640?wx_fmt=png&from=appmsg&watermark=1",
+    "footer2": "https://mmbiz.qpic.cn/mmbiz_png/zs1lfia1tiaJ6AhwiaFm9082XtcGrx6ctyhpeBD1pAfaGGPz33bd86NTktcZSdxfhca83rm2nbFibwkiasiaesZGTEJg/640?wx_fmt=png&from=appmsg&watermark=1"
+  },
+  "config": {
+    "isMacCodeBlock": true,
+    "isShowLineNumber": false,
+    "isCiteStatus": false,
+    "showAIToolbox": true,
+    "isCountStatus": false,
+    "isUseIndent": true,
+    "isUseJustify": true,
+    "isOpenRightSlider": true,
+    "isOpenPostSlider": false,
+    "theme": "default",
+    "fontFamily": "-apple-system-font,BlinkMacSystemFont, Helvetica Neue, PingFang SC, Hiragino Sans GB , Microsoft YaHei UI , Microsoft YaHei ,Arial,sans-serif",
+    "fontSize": "15px",
+    "primaryColor": "rgba(220, 249, 80, 1)",
+    "codeBlockTheme": "https://cdn-doocs.oss-cn-shenzhen.aliyuncs.com/npm/highlightjs/11.11.1/styles/github-dark.min.css",
+    "legend": "alt",
+    "cssContentConfig": {
+      "active": "增材制造狗样式",
+      "tabs": [
+        {
+          "title": "增材制造狗样式",
+          "name": "增材制造狗样式",
+          "content": "/**\n * 增材制造狗公众号样式配置\n * 主题色：荧光黄绿 rgba(220, 249, 80, 1)\n * 适用于3D打印和增材制造内容\n */\n\n/* 顶层容器样式 */\ncontainer {\n  font-family: -apple-system-font, BlinkMacSystemFont, Helvetica Neue, PingFang SC, Hiragino Sans GB, Microsoft YaHei UI, Microsoft YaHei, Arial, sans-serif;\n}\n\n/* 一级标题样式 */\nh1 {\n  color: #333;\n  font-size: 22px;\n  font-weight: bold;\n  line-height: 1.4;\n  margin: 20px 0 15px 0;\n  text-align: left;\n}\n\n/* 二级标题样式 */\nh2 {\n  color: #333;\n  font-size: 18px;\n  font-weight: bold;\n  margin: 25px 0 12px 0;\n  border-bottom: 2px solid rgba(220, 249, 80, 1);\n  padding-bottom: 5px;\n}\n\n/* 三级标题样式 */\nh3 {\n  color: #333;\n  font-size: 16px;\n  font-weight: bold;\n  margin: 20px 0 10px 0;\n}\n\n/* 四级标题样式 */\nh4 {\n  color: #555;\n  font-size: 15px;\n  font-weight: bold;\n  margin: 18px 0 8px 0;\n}\n\n/* 段落样式 */\np {\n  color: #333;\n  line-height: 1.8;\n  margin-bottom: 16px;\n  text-align: justify;\n  font-size: 15px;\n  text-indent: 2em;\n}\n\n/* 信源段落特殊样式 */\np:first-child {\n  font-size: 12px;\n  color: #999;\n  text-indent: 0;\n  margin-bottom: 20px;\n  text-align: left;\n}\n\n/* 图片样式 */\nimage {\n  border-radius: 6px;\n  margin: 20px 0;\n  max-width: 100%;\n  height: auto;\n}\n\n/* 引用样式 */\nblockquote {\n  background-color: #f8f9fa;\n  border-left: 4px solid rgba(220, 249, 80, 1);\n  padding: 15px 20px;\n  margin: 20px 0;\n  color: #555;\n  font-style: italic;\n}\n\n/* 引用段落样式 */\nblockquote_p {\n  color: #555;\n  margin: 0;\n  text-indent: 0;\n}\n\n/* 粗体样式 */\nstrong {\n  color: #333;\n  font-weight: bold;\n}\n\n/* 链接样式 */\nlink {\n  color: #007acc;\n  text-decoration: none;\n}\n\n/* 微信链接样式 */\nwx_link {\n  color: #007acc;\n  text-decoration: none;\n}\n\n/* 行内代码样式 */\ncodespan {\n  background-color: rgba(220, 249, 80, 0.2);\n  padding: 2px 6px;\n  border-radius: 3px;\n  font-family: 'Courier New', Courier, monospace;\n  color: #333;\n  font-size: 13px;\n}\n\n/* 代码块样式 */\ncode {\n  background-color: #f6f8fa;\n  border: 1px solid #e1e4e8;\n  border-radius: 6px;\n  padding: 16px;\n  font-family: 'Courier New', Courier, monospace;\n  font-size: 13px;\n  line-height: 1.4;\n}\n\n/* 代码块外层样式 */\ncode_pre {\n  margin: 20px 0;\n}\n\n/* 分割线样式 */\nhr {\n  border: none;\n  border-top: 1px solid #eee;\n  margin: 30px 0;\n}\n\n/* 有序列表样式 */\nol {\n  margin: 16px 0;\n  padding-left: 25px;\n}\n\n/* 无序列表样式 */\nul {\n  margin: 16px 0;\n  padding-left: 25px;\n}\n\n/* 列表项样式 */\nlistitem {\n  margin-bottom: 8px;\n  line-height: 1.6;\n  text-indent: 0;\n}\n\n/* 斜体样式 */\nem {\n  font-style: italic;\n  color: #555;\n}\n\n/* 品牌标识样式 - 用于绿色框 */\n.brand-header {\n  background: linear-gradient(135deg, rgba(220, 249, 80, 0.9), rgba(180, 220, 60, 0.9));\n  color: #333;\n  font-weight: bold;\n  padding: 12px 20px;\n  border-radius: 8px;\n  text-align: center;\n  margin: 20px 0;\n  box-shadow: 0 2px 8px rgba(0,0,0,0.1);\n}"
+        }
+      ]
+    },
+    "isShowCssEditor": false,
+    "isShowUploadImgDialog": false
+  }
+}

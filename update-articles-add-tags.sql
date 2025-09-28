@@ -2,12 +2,27 @@
 -- 更新articles表：添加ai_tags字段，支持自由标签
 -- =====================================================
 
--- 添加自由标签字段
-ALTER TABLE articles 
-ADD COLUMN ai_tags TEXT[] DEFAULT '{}';
+-- 添加自由标签字段（如果不存在）
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'articles' AND column_name = 'ai_tags'
+    ) THEN
+        ALTER TABLE articles ADD COLUMN ai_tags TEXT[] DEFAULT '{}';
+    END IF;
+END $$;
 
--- 为新字段添加索引，支持标签搜索
-CREATE INDEX idx_articles_ai_tags ON articles USING GIN(ai_tags);
+-- 为新字段添加索引，支持标签搜索（如果不存在）
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_indexes 
+        WHERE tablename = 'articles' AND indexname = 'idx_articles_ai_tags'
+    ) THEN
+        CREATE INDEX idx_articles_ai_tags ON articles USING GIN(ai_tags);
+    END IF;
+END $$;
 
 -- 添加字段注释
 COMMENT ON COLUMN articles.ai_tags IS 'AI生成的自由标签数组，支持技术、领域、商业信号等标签';

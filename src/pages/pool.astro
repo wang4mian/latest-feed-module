@@ -68,8 +68,15 @@ const getScoreBadgeClass = (score: number) => {
   return 'low';
 };
 
-// 分类显示
+// 分类显示 - 支持新的中文分类
 const getCategoryText = (category: string) => {
+  // 如果已经是中文分类，直接返回
+  const chineseCategories = ['应用', '商业', '科研', '生态', '医疗', '建筑', '军政', '产品', '材料', '汽车'];
+  if (chineseCategories.includes(category)) {
+    return category;
+  }
+  
+  // 兼容旧的英文分类
   const categoryMap: { [key: string]: string } = {
     'Core Equipment': '核心设备',
     'Supply Chain': '供应链',
@@ -80,9 +87,21 @@ const getCategoryText = (category: string) => {
   return categoryMap[category] || category || '未分类';
 };
 
-// 获取分类样式类
+// 获取分类样式类 - 支持新的中文分类
 const getCategoryClass = (category: string) => {
   const classMap: { [key: string]: string } = {
+    // 新的中文分类
+    '应用': 'equipment',
+    '商业': 'business', 
+    '科研': 'innovation',
+    '生态': 'supply',
+    '医疗': 'trends',
+    '建筑': 'equipment',
+    '军政': 'business',
+    '产品': 'equipment',
+    '材料': 'supply',
+    '汽车': 'trends',
+    // 兼容旧的英文分类
     'Core Equipment': 'equipment',
     'Supply Chain': 'supply',
     'Market Trends': 'trends',
@@ -181,11 +200,16 @@ const generatePageUrl = (pageNum: number) => {
         <div class="min-w-40">
           <select name="category" class="block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
             <option value="">全部分类</option>
-            <option value="Core Equipment" selected={category === 'Core Equipment'}>核心设备</option>
-            <option value="Supply Chain" selected={category === 'Supply Chain'}>供应链</option>
-            <option value="Market Trends" selected={category === 'Market Trends'}>市场趋势</option>
-            <option value="Technological Innovation" selected={category === 'Technological Innovation'}>技术创新</option>
-            <option value="Business Models" selected={category === 'Business Models'}>商业模式</option>
+            <option value="应用" selected={category === '应用'}>应用</option>
+            <option value="商业" selected={category === '商业'}>商业</option>
+            <option value="科研" selected={category === '科研'}>科研</option>
+            <option value="生态" selected={category === '生态'}>生态</option>
+            <option value="医疗" selected={category === '医疗'}>医疗</option>
+            <option value="建筑" selected={category === '建筑'}>建筑</option>
+            <option value="军政" selected={category === '军政'}>军政</option>
+            <option value="产品" selected={category === '产品'}>产品</option>
+            <option value="材料" selected={category === '材料'}>材料</option>
+            <option value="汽车" selected={category === '汽车'}>汽车</option>
           </select>
         </div>
 

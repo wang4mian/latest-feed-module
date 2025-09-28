@@ -124,26 +124,26 @@ serve(async (req) => {
         // Step 2: AI Analysis with Gemini (with token tracking)
         const { analysis, tokenUsage } = await analyzeWithGeminiAndTrackTokens(article, fullContent)
 
-        // Step 3: Update article with analysis results
+        // Step 3: Update article with simplified analysis results
         const { error: updateError } = await supabase
           .from('articles')
           .update({
-            ai_score: analysis.relevance_score,
-            ai_reason: analysis.relevance_reason,
-            ai_category: analysis.primary_category,
-            ai_summary: analysis.summary_for_editor,
-            ai_strategic_implication: analysis.strategic_implication,
+            ai_summary: analysis.summary,
+            ai_tags: analysis.tags, // 新字段：自由标签数组
             full_content: fullContent, // Store complete content from Jina AI
-            overall_status: 'ready_for_review',
+            overall_status: 'ready_for_review', // 简化：所有文章都进入待审核
             updated_at: new Date().toISOString()
           })
           .eq('id', article.id)
 
         if (updateError) throw updateError
 
-        // Step 4: Process entities
-        if (analysis.entities) {
-          await processEntities(supabase, article.id, analysis.entities)
+        // Step 4: Process entities (simplified)
+        if (analysis.companies || analysis.technologies) {
+          await processEntities(supabase, article.id, {
+            companies: analysis.companies || [],
+            technologies: analysis.technologies || []
+          })
         }
 
         // Accumulate token usage
@@ -158,13 +158,13 @@ serve(async (req) => {
         results.push({
           id: article.id,
           title: article.title,
-          score: analysis.relevance_score,
-          category: analysis.primary_category,
+          tags: analysis.tags,
+          summary_length: analysis.summary?.length || 0,
           tokenUsage: tokenUsage,
           status: 'processed'
         })
 
-        console.log(`✅ Article processed: ${article.title} (Score: ${analysis.relevance_score}, Tokens: ${tokenUsage.totalTokens}, Cost: $${tokenUsage.totalCost.toFixed(6)})`)
+        console.log(`✅ Article processed: ${article.title} (Tags: ${analysis.tags?.length || 0}, Tokens: ${tokenUsage.totalTokens}, Cost: $${tokenUsage.totalCost.toFixed(6)})`)
 
       } catch (error) {
         console.error(`❌ Error processing article ${article.id}:`, error)
@@ -293,42 +293,38 @@ async function analyzeWithGeminiAndTrackTokens(article: ArticleForAnalysis, full
   }
 
   const analysisPrompt = `
-# [SECTION 1: CONTEXT & ROLE]
-You are a senior industry analyst specializing in the field of **${article.topic_for_ai}**. Your task is to evaluate the following article based on its relevance, business value, and strategic importance *specifically for the **${article.topic_for_ai}** industry*.
+# 核心任务：智能摘要 + 自由标签
 
-# [SECTION 2: CORE TASK - ANALYSIS & EVALUATION]
-Analyze the provided article and output your findings in a strict JSON format.
+你是一位专业的制造业内容分析师。请对以下文章进行两项核心工作：
 
-## JSON OUTPUT SPECIFICATION:
+## 1. 智能摘要
+生成一份200字左右的中文摘要，突出：
+- 核心事实和关键信息
+- 对制造业的实际意义
+- 值得关注的要点
+
+## 2. 自由标签
+根据文章内容，自由创建3-5个标签，可以包括：
+- 技术类型（如：3D打印、机器人、AI）
+- 应用领域（如：汽车、医疗、航空）
+- 商业信号（如：融资、并购、新产品）
+- 地域信息（如：中国、美国、欧洲）
+- 任何你认为有价值的特征标签
+
+## 输出格式（严格JSON）：
 {
-  "relevance_score": <An integer from 0-100, calculated based on the scoring rubric below>,
-  "relevance_reason": "<A concise, one-sentence explanation for the score>",
-  "primary_category": "<Choose the most fitting category from: 'Core Equipment', 'Supply Chain', 'Market Trends', 'Technological Innovation', 'Business Models'>",
-  "entities": {
-    "companies": ["<List of company names mentioned>"],
-    "technologies": ["<List of technology names mentioned>"],
-    "people": ["<List of key individuals mentioned>"]
-  },
-  "summary_for_editor": "<A 200-word summary in Chinese, written for an editor. It must highlight the core insights and actionable information relevant to the **${article.topic_for_ai}** industry.>",
-  "strategic_implication": "<A short analysis (in Chinese) of what this news *means*. Is it an opportunity, a threat, a signal of a new trend, or just noise?>"
+  "summary": "<200字中文摘要>",
+  "tags": ["<标签1>", "<标签2>", "<标签3>", "<标签4>", "<标签5>"],
+  "companies": ["<提到的公司名称>"],
+  "technologies": ["<涉及的技术>"]
 }
 
-# [SECTION 3: SCORING RUBRIC]
-## Base Score based on Article Type (max 50 points):
-- Direct discussion of **${article.topic_for_ai}** products or companies: 50 points.
-- Discussion of adjacent technologies or supply chain for **${article.topic_for_ai}**: 40 points.
-- Discussion of market trends or business models impacting **${article.topic_for_ai}**: 30 points.
-- Macroeconomic or general technology news with indirect relevance: 10 points.
-- Not relevant: 0 points.
+## 文章信息：
+- **主题**: ${article.topic_for_ai}
+- **标题**: ${article.title}  
+- **内容**: ${fullContent}
 
-## Bonus Multipliers (applied to the base score):
-- **Actionable Signal Multiplier (max 1.5x)**: Multiply by 1.5 if the article contains strong business signals like funding, M&A, financial reports, specific sales data, or customer case studies. Multiply by 1.0 otherwise.
-- **Future-Facing Multiplier (max 1.2x)**: Multiply by 1.2 if the article discusses a future trend, a new patent, or a breakthrough innovation. Multiply by 1.0 otherwise.
-
-# [SECTION 4: ARTICLE FOR ANALYSIS]
-- **Article Topic**: ${article.topic_for_ai}
-- **Article Title**: ${article.title}
-- **Article Content**: ${fullContent}
+请专注做好摘要和标签，保持简洁高效。
 `
 
   // Estimate input tokens (rough approximation: 1 token ≈ 4 characters for English, 1 token ≈ 1 character for Chinese)

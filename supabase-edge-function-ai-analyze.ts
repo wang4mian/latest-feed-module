@@ -238,6 +238,10 @@ async function extractFullContent(url: string, description: string): Promise<str
       headers: {
         'Accept': 'application/json',
         'X-Return-Format': 'markdown'
+        // TODO: 高级选项需要付费API key
+        // 'X-With-Generated-Alt': 'true',     // 需要付费版本
+        // 'X-With-Images-Summary': 'true',    // 需要付费版本  
+        // 'X-Retain-Images': 'true',          // 需要付费版本
       }
     })
 

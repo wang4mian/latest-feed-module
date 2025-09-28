@@ -133,7 +133,7 @@ serve(async (req) => {
             ai_category: analysis.primary_category,
             ai_summary: analysis.summary_for_editor,
             ai_strategic_implication: analysis.strategic_implication,
-            full_content: fullContent.substring(0, 10000), // Store first 10K chars
+            full_content: fullContent, // Store complete content from Jina AI
             overall_status: 'ready_for_review',
             updated_at: new Date().toISOString()
           })

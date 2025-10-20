@@ -43,7 +43,7 @@ export const POST: APIRoute = async ({ request }) => {
   }
 };
 
-// Extract content using Jina AI MCP Server
+// Extract content using Jina AI (parallel processing)
 async function extractContentWithMCP(urls: string[]) {
   try {
     // Get Jina API key from environment
@@ -53,108 +53,71 @@ async function extractContentWithMCP(urls: string[]) {
       console.warn('No Jina API key found, using rate-limited access');
     }
 
-    // Call Jina MCP Server for parallel content extraction
-    const mcpResponse = await fetch('https://mcp.jina.ai/sse', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(jinaApiKey && { 'Authorization': `Bearer ${jinaApiKey}` })
-      },
-      body: JSON.stringify({
-        method: 'tools/call',
-        params: {
-          name: 'parallel_read_url',
-          arguments: {
-            urls: urls,
-            include_images: true,
+    console.log(`Starting parallel extraction for ${urls.length} URLs`);
+
+    // Call Jina API directly for each URL in parallel
+    const extractionPromises = urls.map(async (url, index) => {
+      try {
+        console.log(`Extracting URL ${index + 1}: ${url}`);
+        
+        const response = await fetch('https://r.jina.ai/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(jinaApiKey && { 'Authorization': `Bearer ${jinaApiKey}` })
+          },
+          body: JSON.stringify({
+            url: url,
+            extract_images: true,
             format: 'markdown',
-            extract_metadata: true
-          }
+            include_metadata: true
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
-      })
+
+        const data = await response.json();
+        console.log(`Successfully extracted URL ${index + 1}`);
+        
+        return {
+          url: url,
+          title: data.title || data.data?.title || `文章 ${index + 1}`,
+          content: data.content || data.data?.content || '',
+          metadata: data.metadata || data.data?.metadata || {},
+          images: data.images || data.data?.images || [],
+          extractedAt: new Date().toISOString(),
+          success: true
+        };
+      } catch (error) {
+        console.error(`Failed to extract URL ${index + 1} (${url}):`, error);
+        return {
+          url: url,
+          title: `文章 ${index + 1} (提取失败)`,
+          content: `无法提取内容: ${error.message}`,
+          metadata: {},
+          images: [],
+          extractedAt: new Date().toISOString(),
+          success: false,
+          error: error.message
+        };
+      }
     });
 
-    if (!mcpResponse.ok) {
-      throw new Error(`MCP API error: ${mcpResponse.status} ${mcpResponse.statusText}`);
-    }
-
-    const mcpResult = await mcpResponse.json();
+    const extractedResults = await Promise.all(extractionPromises);
     
-    // Process MCP response
-    if (mcpResult.error) {
-      throw new Error(`MCP tool error: ${mcpResult.error.message}`);
-    }
-
-    const extractedData = mcpResult.result?.content || mcpResult.result;
+    const successCount = extractedResults.filter(r => r.success).length;
+    console.log(`Parallel extraction completed: ${successCount}/${urls.length} successful`);
     
-    // Transform to standardized format
-    return urls.map((url, index) => ({
-      url: url,
-      title: extractedData[index]?.title || `文章 ${index + 1}`,
-      content: extractedData[index]?.content || extractedData[index] || '',
-      metadata: extractedData[index]?.metadata || {},
-      images: extractedData[index]?.images || [],
-      extractedAt: new Date().toISOString()
-    }));
+    return extractedResults;
 
   } catch (error) {
-    console.error('MCP extraction failed:', error);
-    
-    // Fallback to direct Jina API if MCP fails
-    console.log('Falling back to direct Jina API...');
-    return await fallbackToDirectJina(urls);
+    console.error('Parallel extraction failed:', error);
+    throw error;
   }
 }
 
-// Fallback to direct Jina API call
-async function fallbackToDirectJina(urls: string[]) {
-  const jinaApiKey = process.env.JINA_API_KEY;
-  const results = [];
-
-  for (const url of urls) {
-    try {
-      const response = await fetch('https://r.jina.ai/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(jinaApiKey && { 'Authorization': `Bearer ${jinaApiKey}` })
-        },
-        body: JSON.stringify({
-          url: url,
-          extract_images: true,
-          format: 'markdown',
-          include_metadata: true
-        })
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        results.push({
-          url: url,
-          title: data.title || `文章 ${results.length + 1}`,
-          content: data.content || data.data?.content || '',
-          metadata: data.metadata || {},
-          images: data.images || [],
-          extractedAt: new Date().toISOString()
-        });
-      } else {
-        throw new Error(`HTTP ${response.status}`);
-      }
-    } catch (error) {
-      console.error(`Failed to extract ${url}:`, error);
-      results.push({
-        url: url,
-        title: `文章 ${results.length + 1} (提取失败)`,
-        content: `无法提取内容: ${error.message}`,
-        metadata: {},
-        images: [],
-        extractedAt: new Date().toISOString()
-      });
-    }
-  }
-
-  return results;
-}
 
 // Compile with Gemini AI
 async function compileWithGemini(extractedContents: any[], customPrompt?: string) {

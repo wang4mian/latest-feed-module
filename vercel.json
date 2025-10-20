@@ -1,7 +1,1 @@
-{
-  "functions": {
-    "dist/server/entry.mjs": {
-      "runtime": "edge"
-    }
-  }
-}
+{}

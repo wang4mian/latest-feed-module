@@ -166,12 +166,11 @@ https://www.reuters.com/technology/german-industry-40/
           <h3 class="text-sm font-medium text-blue-800">使用提示</h3>
           <div class="mt-2 text-sm text-blue-700">
             <ul class="list-disc list-inside space-y-1">
-              <li>🚀 使用Jina AI Reader LM-v2引擎，智能提取核心内容</li>
-              <li>🎯 自动定位文章主体，过滤广告、导航等噪音内容</li>
-              <li>📊 提供字数统计、阅读时间、可读性评分等元数据</li>
-              <li>🔗 自动提取相关链接摘要，增强内容完整性</li>
-              <li>📝 建议每次输入3-8个相关URL，编译效果最佳</li>
-              <li>📱 编译结果直接适配微信公众号格式</li>
+              <li>支持任意网站的URL，系统会自动提取内容</li>
+              <li>使用Jina AI Reader进行内容提取</li>
+              <li>建议每次输入3-8个相关URL，编译效果最佳</li>
+              <li>编译结果直接适配微信公众号格式</li>
+              <li>可以下载Markdown文件，方便后续编辑</li>
             </ul>
           </div>
         </div>
@@ -264,9 +263,9 @@ https://www.reuters.com/technology/german-industry-40/
       const totalSteps = 3; // MCP extraction + Gemini compilation + formatting
       let currentStep = 0;
 
-      // Step 1: Enhanced Content Extraction
-      addStatusMessage('🔗 使用Jina AI Reader LM-v2引擎提取内容...', 'info');
-      addStatusMessage(`📡 智能目标定位和噪音清理 - 并行处理 ${urls.length} 个URL`, 'info');
+      // Step 1: Content Extraction
+      addStatusMessage('🔗 使用Jina AI Reader提取内容...', 'info');
+      addStatusMessage(`📡 并行处理 ${urls.length} 个URL`, 'info');
       updateProgress(++currentStep, totalSteps);
 
       // Step 2: Gemini Compilation
@@ -380,13 +379,7 @@ https://www.reuters.com/technology/german-industry-40/
               <div>
                 <div class="font-medium">${item.title}</div>
                 <div class="text-blue-600">${item.url}</div>
-                <div class="text-gray-500 space-x-2">
-                  <span>提取于: ${new Date(item.extractedAt).toLocaleString('zh-CN')}</span>
-                  ${item.word_count ? `<span>• ${item.word_count}字</span>` : ''}
-                  ${item.reading_time ? `<span>• ${item.reading_time}</span>` : ''}
-                  ${item.engine ? `<span>• ${item.engine}</span>` : ''}
-                </div>
-                ${item.readability_score ? `<div class="text-xs text-green-600">可读性: ${item.readability_score}</div>` : ''}
+                <div class="text-gray-500">提取于: ${new Date(item.extractedAt).toLocaleString('zh-CN')}</div>
               </div>
             </div>
           `).join('')}

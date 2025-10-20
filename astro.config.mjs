@@ -12,17 +12,10 @@ export default defineConfig({
   ],
   output: 'server',
   adapter: vercel({
-    webAnalytics: { enabled: true },
-    functionPerRoute: true
+    webAnalytics: { enabled: true }
   }),
   server: {
-    port: 3000,
+    port: 4000,
     host: true
-  },
-  vite: {
-    define: {
-      'process.env.PUBLIC_SUPABASE_URL': JSON.stringify(process.env.PUBLIC_SUPABASE_URL),
-      'process.env.PUBLIC_SUPABASE_ANON_KEY': JSON.stringify(process.env.PUBLIC_SUPABASE_ANON_KEY)
-    }
   }
 });

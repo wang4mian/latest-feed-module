@@ -47,7 +47,7 @@ export const POST: APIRoute = async ({ request }) => {
 async function extractContentWithMCP(urls: string[]) {
   try {
     // Get Jina API key from environment
-    const jinaApiKey = import.meta.env.JINA_API_KEY;
+    const jinaApiKey = process.env.JINA_API_KEY;
     
     if (!jinaApiKey) {
       console.warn('No Jina API key found, using rate-limited access');
@@ -108,7 +108,7 @@ async function extractContentWithMCP(urls: string[]) {
 
 // Fallback to direct Jina API call
 async function fallbackToDirectJina(urls: string[]) {
-  const jinaApiKey = import.meta.env.JINA_API_KEY;
+  const jinaApiKey = process.env.JINA_API_KEY;
   const results = [];
 
   for (const url of urls) {
@@ -159,7 +159,7 @@ async function fallbackToDirectJina(urls: string[]) {
 // Compile with Gemini AI
 async function compileWithGemini(extractedContents: any[], customPrompt?: string) {
   try {
-    const geminiApiKey = import.meta.env.GEMINI_API_KEY;
+    const geminiApiKey = process.env.GEMINI_API_KEY;
     
     if (!geminiApiKey) {
       throw new Error('Gemini API key not configured');

@@ -1,0 +1,42 @@
+# 排除不必要的文件以减少部署包大小
+
+# 测试和调试脚本
+test-*.js
+*-test.js
+debug-*.js
+check-*.js
+analyze-*.js
+validate-*.js
+monitor-*.js
+process-*.sh
+trigger-*.sh
+verify-*.sh
+manual-*.sh
+manual-*.sql
+
+# SQL脚本和数据库文件
+*.sql
+database/
+legacy_data/
+
+# 文档和说明文件
+*.md
+docs/
+
+# 配置文件和模板
+exported_config.json
+*样式.json
+*预设*.json
+*配置*.json
+
+# Supabase Edge Functions (不需要部署到Vercel)
+supabase-edge-function-*.ts
+
+# 临时文件
+editor-content-preview-*.md
+
+# 中文文件名文件
+增材制造狗-*.md
+快讯编译提示词.md
+样式预设最佳实践方案.md
+商用机器人拆解局*.json

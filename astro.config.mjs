@@ -17,5 +17,10 @@ export default defineConfig({
   server: {
     port: 4000,
     host: true
+  },
+  image: {
+    service: {
+      entrypoint: 'astro/assets/services/noop'
+    }
   }
 });

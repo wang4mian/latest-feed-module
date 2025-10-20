@@ -1,0 +1,487 @@
+---
+import DashboardLayout from '../layouts/DashboardLayout.astro';
+---
+
+<DashboardLayout title="填List取编译 - KUATO">
+  <!-- Page Header -->
+  <div class="mb-6">
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="text-3xl font-bold text-gray-900">填List取编译 📝</h1>
+        <p class="mt-1 text-sm text-gray-500">
+          极简工作流：URL列表 → 一键编译 → 复制发布
+        </p>
+      </div>
+      <div class="flex items-center space-x-3">
+        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800">
+          🚀 新功能
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Compiler Interface -->
+  <div class="max-w-4xl mx-auto">
+    <!-- Input Section -->
+    <div class="dashboard-card mb-6">
+      <div class="dashboard-card-body">
+        <h2 class="text-lg font-medium text-gray-900 mb-4">📋 第一步：输入URL列表</h2>
+        <div class="space-y-4">
+          <div>
+            <label for="url-list" class="block text-sm font-medium text-gray-700 mb-2">
+              粘贴今日值得编译的文章URL（每行一个）
+            </label>
+            <textarea
+              id="url-list"
+              name="url-list"
+              rows="8"
+              class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+              placeholder="https://techcrunch.com/2025/01/15/ai-breakthrough-manufacturing/
+https://venturebeat.com/2025/01/15/tesla-new-battery-tech/
+https://spectrum.ieee.org/2025/01/15/robotics-advance/
+https://www.reuters.com/technology/german-industry-40/
+
+可以粘贴任意数量的URL..."
+            ></textarea>
+          </div>
+          
+          <!-- Quick Stats -->
+          <div class="flex items-center justify-between text-sm text-gray-500">
+            <span>检测到 <span id="url-count" class="font-medium text-purple-600">0</span> 个URL</span>
+            <span>预计编译时间: <span id="estimate-time" class="font-medium text-purple-600">-</span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Action Section -->
+    <div class="dashboard-card mb-6">
+      <div class="dashboard-card-body">
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="text-lg font-medium text-gray-900">🚀 第二步：一键编译</h3>
+            <p class="text-sm text-gray-500 mt-1">使用Jina Reader抓取 + Gemini AI编译</p>
+          </div>
+          <button 
+            id="compile-btn"
+            onclick="startCompilation()"
+            class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled
+          >
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+            </svg>
+            开始编译
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Progress Section (Initially Hidden) -->
+    <div class="dashboard-card mb-6 hidden" id="progress-section">
+      <div class="dashboard-card-body">
+        <h3 class="text-lg font-medium text-gray-900 mb-4">⚡ 编译进度</h3>
+        
+        <!-- Progress Bar -->
+        <div class="mb-4">
+          <div class="flex justify-between text-sm font-medium text-gray-900 mb-1">
+            <span>处理进度</span>
+            <span id="progress-text">0%</span>
+          </div>
+          <div class="w-full bg-gray-200 rounded-full h-2">
+            <div id="progress-bar" class="bg-purple-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+          </div>
+        </div>
+
+        <!-- Status Messages -->
+        <div id="status-messages" class="space-y-2">
+          <!-- Dynamic status messages will be added here -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Results Section (Initially Hidden) -->
+    <div class="dashboard-card hidden" id="results-section">
+      <div class="dashboard-card-body">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-medium text-gray-900">📄 第三步：编译结果</h3>
+          <div class="flex space-x-3">
+            <button 
+              onclick="copyResult()"
+              id="copy-btn"
+              class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+            >
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+              </svg>
+              复制结果
+            </button>
+            <button 
+              onclick="downloadResult()"
+              class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+            >
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+              </svg>
+              下载MD
+            </button>
+          </div>
+        </div>
+        
+        <!-- Compiled Result -->
+        <div class="bg-gray-50 rounded-lg p-4">
+          <div id="compiled-result" class="prose prose-sm max-w-none">
+            <!-- 编译结果将显示在这里 -->
+          </div>
+        </div>
+
+        <!-- Raw Markdown (Hidden by default) -->
+        <div class="mt-4">
+          <button 
+            onclick="toggleRawMarkdown()"
+            class="text-sm text-purple-600 hover:text-purple-500"
+          >
+            查看原始Markdown ↓
+          </button>
+          <textarea 
+            id="raw-markdown"
+            class="hidden mt-2 w-full h-64 p-3 text-sm font-mono border border-gray-300 rounded-lg bg-white resize-none focus:outline-none focus:ring-2 focus:ring-purple-500"
+            readonly
+          ></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Help Section -->
+  <div class="max-w-4xl mx-auto mt-8">
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+      <div class="flex">
+        <div class="flex-shrink-0">
+          <svg class="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+          </svg>
+        </div>
+        <div class="ml-3">
+          <h3 class="text-sm font-medium text-blue-800">使用提示</h3>
+          <div class="mt-2 text-sm text-blue-700">
+            <ul class="list-disc list-inside space-y-1">
+              <li>支持任意网站的URL，系统会自动提取内容</li>
+              <li>建议每次输入3-8个相关URL，编译效果最佳</li>
+              <li>编译结果直接适配微信公众号格式</li>
+              <li>可以下载Markdown文件，方便后续编辑</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</DashboardLayout>
+
+<script>
+  // URL counting and validation
+  document.addEventListener('DOMContentLoaded', () => {
+    const urlTextarea = document.getElementById('url-list');
+    const urlCount = document.getElementById('url-count');
+    const estimateTime = document.getElementById('estimate-time');
+    const compileBtn = document.getElementById('compile-btn');
+
+    urlTextarea.addEventListener('input', () => {
+      const content = urlTextarea.value.trim();
+      const urls = content ? content.split('\n').filter(line => {
+        const trimmed = line.trim();
+        return trimmed && (trimmed.startsWith('http://') || trimmed.startsWith('https://'));
+      }) : [];
+      
+      urlCount.textContent = urls.length;
+      
+      if (urls.length > 0) {
+        estimateTime.textContent = `约${Math.ceil(urls.length * 15 / 60)}分钟`;
+        compileBtn.disabled = false;
+        compileBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+      } else {
+        estimateTime.textContent = '-';
+        compileBtn.disabled = true;
+        compileBtn.classList.add('opacity-50', 'cursor-not-allowed');
+      }
+    });
+  });
+
+  // Main compilation function
+  async function startCompilation() {
+    const urlTextarea = document.getElementById('url-list');
+    const urls = urlTextarea.value.trim().split('\n').filter(line => {
+      const trimmed = line.trim();
+      return trimmed && (trimmed.startsWith('http://') || trimmed.startsWith('https://'));
+    });
+
+    if (urls.length === 0) {
+      alert('请先输入有效的URL列表');
+      return;
+    }
+
+    // Show progress section
+    const progressSection = document.getElementById('progress-section');
+    const resultsSection = document.getElementById('results-section');
+    const compileBtn = document.getElementById('compile-btn');
+    
+    progressSection.classList.remove('hidden');
+    resultsSection.classList.add('hidden');
+    
+    // Disable compile button
+    compileBtn.disabled = true;
+    compileBtn.innerHTML = `
+      <svg class="w-5 h-5 mr-2 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+      </svg>
+      编译中...
+    `;
+
+    try {
+      // Call compilation API
+      await callCompilationAPI(urls);
+    } catch (error) {
+      console.error('Compilation failed:', error);
+      addStatusMessage('❌ 编译失败: ' + error.message, 'error');
+    } finally {
+      // Re-enable compile button
+      compileBtn.disabled = false;
+      compileBtn.innerHTML = `
+        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+        </svg>
+        重新编译
+      `;
+    }
+  }
+
+  // Main compilation API call using Jina MCP
+  async function callCompilationAPI(urls) {
+    try {
+      const totalSteps = 3; // MCP extraction + Gemini compilation + formatting
+      let currentStep = 0;
+
+      // Step 1: MCP Content Extraction
+      addStatusMessage('🔗 使用Jina AI MCP服务器提取内容...', 'info');
+      addStatusMessage(`📡 并行处理 ${urls.length} 个URL`, 'info');
+      updateProgress(++currentStep, totalSteps);
+
+      // Step 2: Gemini Compilation
+      addStatusMessage('🤖 使用Gemini AI进行深度编译...', 'info');
+      updateProgress(++currentStep, totalSteps);
+
+      // Call our MCP compilation API
+      const response = await fetch('/api/compile-with-mcp', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          urls: urls,
+          compilePrompt: null // Use default prompt
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`API请求失败: ${response.status} ${response.statusText}`);
+      }
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error || '编译失败');
+      }
+
+      // Step 3: Format and display results
+      addStatusMessage('✨ 格式化编译结果...', 'info');
+      updateProgress(++currentStep, totalSteps);
+
+      // Show detailed extraction info
+      addStatusMessage(`📊 成功提取 ${result.extractedContents.length} 篇文章`, 'success');
+      addStatusMessage(`📝 编译模型: ${result.compiledResult.model}`, 'info');
+      addStatusMessage(`⏰ 编译完成时间: ${new Date(result.compiledResult.compiledAt).toLocaleString('zh-CN')}`, 'info');
+      
+      addStatusMessage('🎉 编译完成！', 'success');
+
+      // Display the compiled result
+      showResults(result.compiledResult.content, result.extractedContents);
+
+    } catch (error) {
+      console.error('Compilation failed:', error);
+      addStatusMessage(`❌ 编译失败: ${error.message}`, 'error');
+      
+      // Show fallback message
+      addStatusMessage('💡 请检查网络连接或稍后重试', 'info');
+      throw error;
+    }
+  }
+
+  // Helper functions
+  function updateProgress(current, total) {
+    const percentage = Math.round((current / total) * 100);
+    document.getElementById('progress-bar').style.width = percentage + '%';
+    document.getElementById('progress-text').textContent = percentage + '%';
+  }
+
+  function addStatusMessage(message, type = 'info') {
+    const statusMessages = document.getElementById('status-messages');
+    const messageDiv = document.createElement('div');
+    
+    const colors = {
+      info: 'text-blue-700 bg-blue-50',
+      success: 'text-green-700 bg-green-50', 
+      error: 'text-red-700 bg-red-50'
+    };
+    
+    messageDiv.className = `text-sm px-3 py-2 rounded ${colors[type]}`;
+    messageDiv.textContent = `${new Date().toLocaleTimeString()} - ${message}`;
+    
+    statusMessages.appendChild(messageDiv);
+    statusMessages.scrollTop = statusMessages.scrollHeight;
+  }
+
+  function showResults(compiledText, extractedContents = []) {
+    const resultsSection = document.getElementById('results-section');
+    const compiledResult = document.getElementById('compiled-result');
+    const rawMarkdown = document.getElementById('raw-markdown');
+    
+    // Show results section
+    resultsSection.classList.remove('hidden');
+    
+    // Convert markdown to HTML for better display
+    const htmlContent = compiledText
+      .replace(/^# (.*$)/gim, '<h1>$1</h1>')
+      .replace(/^## (.*$)/gim, '<h2>$1</h2>')
+      .replace(/^### (.*$)/gim, '<h3>$1</h3>')
+      .replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>')
+      .replace(/\*(.*?)\*/gim, '<em>$1</em>')
+      .replace(/\n\n/g, '</p><p>')
+      .replace(/\n/g, '<br>')
+      .replace(/^(.*)/, '<p>$1')
+      .concat('</p>');
+    
+    // Set content
+    compiledResult.innerHTML = htmlContent;
+    rawMarkdown.value = compiledText;
+    
+    // Add source information if available
+    if (extractedContents && extractedContents.length > 0) {
+      const sourceInfo = document.createElement('div');
+      sourceInfo.className = 'mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200';
+      sourceInfo.innerHTML = `
+        <h4 class="text-sm font-medium text-blue-800 mb-2">📋 源文章信息</h4>
+        <div class="space-y-1 text-xs text-blue-700">
+          ${extractedContents.map((item, index) => `
+            <div class="flex items-start space-x-2">
+              <span class="font-medium">${index + 1}.</span>
+              <div>
+                <div class="font-medium">${item.title}</div>
+                <div class="text-blue-600">${item.url}</div>
+                <div class="text-gray-500">提取于: ${new Date(item.extractedAt).toLocaleString('zh-CN')}</div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+      compiledResult.appendChild(sourceInfo);
+    }
+    
+    // Scroll to results
+    resultsSection.scrollIntoView({ behavior: 'smooth' });
+  }
+
+  // Result actions
+  function copyResult() {
+    const rawMarkdown = document.getElementById('raw-markdown');
+    const copyBtn = document.getElementById('copy-btn');
+    
+    navigator.clipboard.writeText(rawMarkdown.value).then(() => {
+      const originalText = copyBtn.innerHTML;
+      copyBtn.innerHTML = `
+        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+        </svg>
+        已复制
+      `;
+      copyBtn.classList.remove('bg-green-600', 'hover:bg-green-700');
+      copyBtn.classList.add('bg-gray-600', 'hover:bg-gray-700');
+      
+      setTimeout(() => {
+        copyBtn.innerHTML = originalText;
+        copyBtn.classList.remove('bg-gray-600', 'hover:bg-gray-700');
+        copyBtn.classList.add('bg-green-600', 'hover:bg-green-700');
+      }, 2000);
+    }).catch(() => {
+      alert('复制失败，请手动复制');
+    });
+  }
+
+  function downloadResult() {
+    const rawMarkdown = document.getElementById('raw-markdown');
+    const blob = new Blob([rawMarkdown.value], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `编译结果-${new Date().toISOString().split('T')[0]}.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  function toggleRawMarkdown() {
+    const rawMarkdown = document.getElementById('raw-markdown');
+    const button = rawMarkdown.previousElementSibling;
+    
+    if (rawMarkdown.classList.contains('hidden')) {
+      rawMarkdown.classList.remove('hidden');
+      button.textContent = '隐藏原始Markdown ↑';
+    } else {
+      rawMarkdown.classList.add('hidden');
+      button.textContent = '查看原始Markdown ↓';
+    }
+  }
+
+  // Expose functions to global scope
+  window.startCompilation = startCompilation;
+  window.copyResult = copyResult;
+  window.downloadResult = downloadResult;
+  window.toggleRawMarkdown = toggleRawMarkdown;
+</script>
+
+<style>
+  .prose {
+    color: #374151;
+    max-width: none;
+  }
+  
+  .prose h1 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    color: #1f2937;
+  }
+  
+  .prose h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-top: 1.5rem;
+    margin-bottom: 0.75rem;
+    color: #1f2937;
+  }
+  
+  .prose p {
+    margin-bottom: 1rem;
+    line-height: 1.6;
+  }
+  
+  .prose ul {
+    margin-left: 1.5rem;
+    margin-bottom: 1rem;
+  }
+  
+  .prose li {
+    margin-bottom: 0.5rem;
+  }
+</style>

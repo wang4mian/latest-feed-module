@@ -64,13 +64,27 @@ async function extractContentWithMCP(urls: string[]) {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            ...(jinaApiKey && { 'Authorization': `Bearer ${jinaApiKey}` })
+            ...(jinaApiKey && { 'Authorization': `Bearer ${jinaApiKey}` }),
+            // 高级Jina Reader选项
+            'X-Target-Selector': 'article, main, .content, .post, .article-body, .entry-content',
+            'X-Remove-Selector': 'nav, header, footer, .ads, .advertisement, .sidebar, .social-share, .related-posts, script, style',
+            'X-With-Generated-Alt': 'true',
+            'X-Engine': 'readerlm-v2',
+            'X-With-Links-Summary': 'true',
+            'X-Locale': 'zh-CN'
           },
           body: JSON.stringify({
             url: url,
             extract_images: true,
             format: 'markdown',
-            include_metadata: true
+            include_metadata: true,
+            // 高质量提取选项
+            with_generated_alt: true,
+            include_links: true,
+            include_images_summary: true,
+            target_selector: 'article, main, .content, .post, .article-body, .entry-content',
+            remove_selector: 'nav, header, footer, .ads, .advertisement, .sidebar, .social-share, .related-posts, script, style',
+            locale: 'zh-CN'
           })
         });
 
@@ -87,8 +101,15 @@ async function extractContentWithMCP(urls: string[]) {
           content: data.content || data.data?.content || '',
           metadata: data.metadata || data.data?.metadata || {},
           images: data.images || data.data?.images || [],
+          // Jina Reader高级字段
+          links_summary: data.links_summary || data.data?.links_summary || [],
+          generated_alt: data.generated_alt || data.data?.generated_alt || {},
+          readability_score: data.readability_score || data.data?.readability_score,
+          word_count: data.word_count || data.data?.word_count,
+          reading_time: data.reading_time || data.data?.reading_time,
           extractedAt: new Date().toISOString(),
-          success: true
+          success: true,
+          engine: 'readerlm-v2'
         };
       } catch (error) {
         console.error(`Failed to extract URL ${index + 1} (${url}):`, error);
@@ -128,16 +149,29 @@ async function compileWithGemini(extractedContents: any[], customPrompt?: string
       throw new Error('Gemini API key not configured');
     }
 
-    // Prepare content for Gemini
-    const articlesText = extractedContents.map((item, index) => `
+    // Prepare enhanced content for Gemini
+    const articlesText = extractedContents.map((item, index) => {
+      let articleSection = `
 ## 文章 ${index + 1}: ${item.title}
 **来源**: ${item.url}
-**提取时间**: ${item.extractedAt}
+**提取时间**: ${item.extractedAt}`;
 
-${item.content}
+      // 添加高级元数据（如果可用）
+      if (item.word_count) articleSection += `\n**字数**: ${item.word_count}`;
+      if (item.reading_time) articleSection += `\n**阅读时间**: ${item.reading_time}`;
+      if (item.readability_score) articleSection += `\n**可读性**: ${item.readability_score}`;
+      if (item.engine) articleSection += `\n**提取引擎**: ${item.engine}`;
 
----
-`).join('\n');
+      articleSection += `\n\n${item.content}`;
+
+      // 添加链接摘要（如果可用）
+      if (item.links_summary && Array.isArray(item.links_summary) && item.links_summary.length > 0) {
+        articleSection += `\n\n**相关链接**:\n${item.links_summary.map(link => `- ${link}`).join('\n')}`;
+      }
+
+      articleSection += `\n\n---`;
+      return articleSection;
+    }).join('\n');
 
     // Default compilation prompt
     const defaultPrompt = `你是一位资深的行业分析师。请基于以下${extractedContents.length}篇海外文章，编写一篇适合微信公众号发布的深度分析文章。
